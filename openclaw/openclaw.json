@@ -1,0 +1,58 @@
+{
+  "agents": {
+    "defaults": {
+      "workspace": "/home/node/.openclaw/workspace-orchestrator",
+      "model": {
+        "primary": "anthropic/claude-sonnet-4-6"
+      },
+      "timeoutSeconds": 300
+    },
+    "list": [
+      {
+        "id": "orchestrator",
+        "default": true,
+        "workspace": "/home/node/.openclaw/workspace-orchestrator"
+      }
+    ]
+  },
+
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "botToken": "${TELEGRAM_BOT_TOKEN}",
+      "dmPolicy": "open",
+      "mediaMaxMb": 50,
+      "streaming": { "mode": "off" },
+      "errorPolicy": "reply"
+    }
+  },
+
+  "bindings": [
+    {
+      "channel": "telegram",
+      "agentId": "orchestrator"
+    }
+  ],
+
+  "mcp": {
+    "servers": {
+      "github": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-github"],
+        "env": {
+          "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+        }
+      }
+    }
+  },
+
+  "tools": {
+    "exec": {
+      "security": "full"
+    }
+  },
+
+  "gateway": {
+    "port": 18789
+  }
+}
