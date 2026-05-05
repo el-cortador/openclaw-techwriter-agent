@@ -218,5 +218,14 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Other
+.claude
 CLAUDE.md
 docs/specs/
+
+# OpenClaw runtime files (generated at startup)
+openclaw/logs/
+openclaw/canvas/
+openclaw/identity/
+openclaw/tasks/
+openclaw/update-check.json
+openclaw/*.json.bak*
