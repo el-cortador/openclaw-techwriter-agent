@@ -57,8 +57,7 @@ services:
   openclaw:
     image: ghcr.io/openclaw/openclaw:latest
     volumes:
-      - ./openclaw/openclaw.json:/home/node/.openclaw/openclaw.json:ro
-      - ./openclaw/workspace:/home/node/.openclaw/workspace-orchestrator
+      - ./openclaw:/home/node/.openclaw
     env_file: .env
     networks:
       - agent-network
