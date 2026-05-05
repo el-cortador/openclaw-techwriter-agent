@@ -229,3 +229,4 @@ openclaw/identity/
 openclaw/tasks/
 openclaw/update-check.json
 openclaw/*.json.bak*
+openclaw/openclaw.json.last-good
