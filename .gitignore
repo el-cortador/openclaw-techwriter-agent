@@ -227,6 +227,17 @@ openclaw/logs/
 openclaw/canvas/
 openclaw/identity/
 openclaw/tasks/
+openclaw/agents/
+openclaw/cache/
+openclaw/credentials/
+openclaw/exec-approvals.json
+openclaw/plugin-skills/
+openclaw/telegram/
+openclaw/workspace-orchestrator/.git/
+openclaw/workspace-orchestrator/.openclaw/
+openclaw/workspace-orchestrator/MEMORY.md
+openclaw/workspace-orchestrator/sessions.json
 openclaw/update-check.json
+openclaw/openclaw.json
 openclaw/*.json.bak*
 openclaw/openclaw.json.last-good
