@@ -53,7 +53,7 @@ cp .env.example .env
 ```
 TELEGRAM_BOT_TOKEN=...    # токен бота из @BotFather
 OPENROUTER_API_KEY=...    # ключ OpenRouter
-LLM_MODEL_NAME=meta-llama/llama-3.3-70b-instruct
+LLM_MODEL_NAME=moonshotai/kimi-k2.6
 ```
 
 Опциональные (для конкретных сервисов):
@@ -138,7 +138,7 @@ docker compose logs openclaw        # логи OpenClaw
 
 OpenClaw использует модель для классификации входящих сообщений и роутинга к агентам.
 
-**Текущая модель:** `openai/gpt-oss-120b` (OpenRouter)
+**Текущая модель:** `moonshotai/kimi-k2.6` (OpenRouter)
 
 ### Альтернативные модели
 
@@ -149,7 +149,7 @@ OpenClaw использует модель для классификации в�
   "agents": {
     "defaults": {
       "model": {
-        "primary": "openrouter/openai/gpt-oss-120b"
+        "primary": "openrouter/moonshotai/kimi-k2.6"
       }
     }
   }
@@ -162,7 +162,7 @@ OpenClaw использует модель для классификации в�
 |------------|:------------:|---------|
 | `TELEGRAM_BOT_TOKEN` | Да | Токен бота из @BotFather |
 | `OPENROUTER_API_KEY` | Да | API-ключ OpenRouter |
-| `LLM_MODEL_NAME` | Да | Модель OpenRouter (default: `meta-llama/llama-3.3-70b-instruct`) |
+| `LLM_MODEL_NAME` | Да | Модель OpenRouter (default: `moonshotai/kimi-k2.6`) |
 | `FIGMA_TOKEN` | Нет | Figma Personal Access Token (Settings → Security) |
 | `GITHUB_TOKEN` | Нет | GitHub PAT для получения коммитов |
 | `JIRA_EMAIL` | Нет | Email аккаунта Jira |
