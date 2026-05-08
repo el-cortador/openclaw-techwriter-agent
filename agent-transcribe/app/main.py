@@ -10,7 +10,8 @@ from pydantic import BaseModel
 
 from app.config import ALLOWED_EXTENSIONS, MAX_FILE_SIZE, TEMP_DIR
 from app.convert import convert_to_wav
-from app.exceptions import ConversionError, FileValidationError, TranscriptionError
+from app.download import download_media
+from app.exceptions import ConversionError, DownloadError, FileValidationError, TranscriptionError
 from app.postprocess import postprocess
 from app.transcribe import transcribe_sync
 
@@ -25,30 +26,16 @@ class ServiceResponse(BaseModel):
     error: str | None = None
 
 
+class UrlRequest(BaseModel):
+    url: str
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
 
 
-@app.post("/transcribe", response_model=ServiceResponse)
-async def transcribe(file: UploadFile = File(...)) -> ServiceResponse:
-    if not file.filename:
-        return ServiceResponse(error="Имя файла не указано")
-
-    ext = Path(file.filename).suffix.lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        return ServiceResponse(
-            error=f"Неподдерживаемый формат «{ext}». Допустимы: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
-        )
-
-    content = await file.read()
-    if len(content) > MAX_FILE_SIZE:
-        return ServiceResponse(error=f"Файл превышает допустимый размер {MAX_FILE_SIZE // (1024 * 1024)} МБ")
-
-    job_id = str(uuid.uuid4())
-    input_path = TEMP_DIR / f"{job_id}{ext}"
-    input_path.write_bytes(content)
-
+async def _process_media(input_path: Path) -> ServiceResponse:
     wav_path: Path | None = None
     try:
         wav_path = await convert_to_wav(input_path)
@@ -80,3 +67,39 @@ async def transcribe(file: UploadFile = File(...)) -> ServiceResponse:
                     p.unlink()
                 except Exception:
                     pass
+
+
+@app.post("/transcribe", response_model=ServiceResponse)
+async def transcribe(file: UploadFile = File(...)) -> ServiceResponse:
+    if not file.filename:
+        return ServiceResponse(error="Имя файла не указано")
+
+    ext = Path(file.filename).suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        return ServiceResponse(
+            error=f"Неподдерживаемый формат «{ext}». Допустимы: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+        )
+
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        return ServiceResponse(error=f"Файл превышает допустимый размер {MAX_FILE_SIZE // (1024 * 1024)} МБ")
+
+    job_id = str(uuid.uuid4())
+    input_path = TEMP_DIR / f"{job_id}{ext}"
+    input_path.write_bytes(content)
+
+    return await _process_media(input_path)
+
+
+@app.post("/transcribe/url", response_model=ServiceResponse)
+async def transcribe_url(payload: UrlRequest) -> ServiceResponse:
+    job_id = str(uuid.uuid4())
+    try:
+        input_path = await download_media(payload.url, job_id)
+    except DownloadError as exc:
+        return ServiceResponse(error=str(exc))
+    except Exception as exc:
+        logger.error("[transcribe/url] %s", exc)
+        return ServiceResponse(error=str(exc))
+
+    return await _process_media(input_path)

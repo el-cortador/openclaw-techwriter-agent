@@ -9,6 +9,10 @@ class FileValidationError(TranscribeError):
     pass
 
 
+class DownloadError(TranscribeError):
+    pass
+
+
 class ConversionError(TranscribeError):
     pass
 
