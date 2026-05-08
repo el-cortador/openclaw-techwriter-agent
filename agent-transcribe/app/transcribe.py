@@ -16,11 +16,10 @@ def _load_model():
     global _model
     if _model is None:
         from faster_whisper import WhisperModel
-        import torch
 
         device = WHISPER_DEVICE
         if device == "auto":
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+            device = "cpu"
 
         compute_type = "float16" if device == "cuda" else "int8"
         logger.info("[transcribe] loading model=%s device=%s compute=%s", WHISPER_MODEL_NAME, device, compute_type)

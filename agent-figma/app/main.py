@@ -68,9 +68,6 @@ def generate_guide(
 ) -> ServiceResponse:
     try:
         token = payload.figma_token or FIGMA_API_TOKEN
-        if not token:
-            return ServiceResponse(error="Figma token не указан. Передайте figma_token или задайте FIGMA_TOKEN в .env")
-
         file_id = extract_file_id(payload.figma_url)
         data = figma.get_file(file_id, token)
         filtered = filter_figma_json(data)
