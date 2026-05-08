@@ -13,6 +13,22 @@ def _load_system_prompt() -> str:
     return SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
 
 
+def _clean_markdown(text: str) -> str:
+    """Remove markdown formatting from response."""
+    lines = []
+    for line in text.split("\n"):
+        # Remove ### ## # headers
+        line = line.lstrip("#").lstrip()
+        # Remove ** bold markers
+        line = line.replace("**", "")
+        # Remove * italic markers (but keep - for list items)
+        line = line.replace("*", "")
+        # Remove _ italic markers
+        line = line.replace("_", "")
+        lines.append(line)
+    return "\n".join(lines)
+
+
 def review(text: str, styleguide: str | None) -> str:
     client = OpenAI(api_key=OPENROUTER_API_KEY, base_url="https://openrouter.ai/api/v1")
 
@@ -20,14 +36,11 @@ def review(text: str, styleguide: str | None) -> str:
 
     if styleguide:
         user_message = (
-            f"<СТАЙЛГАЙД>\n{styleguide}\n</СТАЙЛГАЙД>\n\n"
-            f"<ТЕКСТ ДЛЯ РЕВЬЮ>\n{text}\n</ТЕКСТ ДЛЯ РЕВЬЮ>"
+            f"Стайлгайд:\n{styleguide}\n\n"
+            f"Текст для ревью:\n{text}"
         )
     else:
-        user_message = (
-            "Стайлгайд не предоставлен. Выполни базовое ревью по общим правилам технической документации.\n\n"
-            f"<ТЕКСТ ДЛЯ РЕВЬЮ>\n{text}\n</ТЕКСТ ДЛЯ РЕВЬЮ>"
-        )
+        user_message = f"Текст для ревью:\n{text}"
 
     logger.info("[reviewer] model=%s styleguide=%s", LLM_MODEL_NAME, bool(styleguide))
 
@@ -41,4 +54,7 @@ def review(text: str, styleguide: str | None) -> str:
         max_tokens=4096,
     )
 
-    return response.choices[0].message.content or ""
+    result = response.choices[0].message.content or ""
+    # Remove markdown formatting if model added it
+    result = _clean_markdown(result)
+    return result
