@@ -17,7 +17,7 @@ spec2doc    figma         ...       reviewer
 |--------|------|-----------|
 | `agent-spec2doc` | 8001 | Черновик технической документации из постановки аналитика |
 | `agent-figma` | 8002 | User guide из Figma-ссылки |
-| `agent-transcribe` | 8003 | Транскрипт + саммари из аудио/видео |
+| `agent-transcribe` | 8003 | Транскрипт + саммари из аудио/видео или ссылки на медиафайл |
 | `agent-release-notes` | 8004 | Релиз-ноты из GitHub-репо или Jira-задач |
 | `agent-api-docs` | 8005 | API-документация из описания эндпоинтов |
 | `agent-reviewer` | 8006 | Ревью документации по стайлгайду |
@@ -64,7 +64,7 @@ GITHUB_TOKEN=...          # для agent-release-notes (GitHub)
 JIRA_EMAIL=...            # для agent-release-notes (Jira)
 JIRA_API_TOKEN=...        # для agent-release-notes (Jira)
 WHISPER_MODEL_NAME=base   # для agent-transcribe
-WHISPER_DEVICE=auto       # auto / cpu / cuda
+WHISPER_DEVICE=auto       # auto / cpu / cuda; auto использует CPU
 ```
 
 ### 3. Запустите все сервисы
@@ -114,6 +114,7 @@ docker compose logs openclaw        # логи OpenClaw
 | Текстовую постановку / требования к фиче | Черновик технической документации |
 | Ссылку `figma.com/file/...` или `figma.com/design/...` (или отправьте скриншот макета) | User guide по интерфейсу |
 | Аудио- или видеофайл (.mp3, .wav, .mp4, .ogg, .m4a, .webm) | Транскрипт + саммари |
+| Публичную ссылку на аудио/видео в облаке | Транскрипт + саммари |
 | Ссылку на GitHub-репо + дату (`github.com/owner/repo` + `2025-01-01`) | Релиз-ноты + Changelog |
 | Ссылки на Jira-задачи | Релиз-ноты по задачам |
 | Описание API / эндпоинтов | Черновик API-документации |
@@ -135,6 +136,22 @@ docker compose logs openclaw        # логи OpenClaw
 Просто загрузи файл `.md` с правилами стайлгайда в Telegram.
 
 После загрузки оркестратор сохранит стайлгайд и будет **автоматически использовать его при каждом ревью**.
+
+### Большие аудио и видео
+
+Telegram Bot API может не отдать боту крупный файл даже при корректных
+настройках OpenClaw. Если видео не скачивается через Telegram, загрузите его в
+облако и отправьте боту публичную ссылку на скачивание.
+
+Поддерживаемый сценарий:
+
+1. Загрузите видео или аудио в Google Drive, Яндекс.Диск или другое облако.
+2. Откройте доступ по ссылке без авторизации.
+3. Отправьте боту ссылку и попросите расшифровать файл.
+4. Бот вызовет `agent-transcribe` через `/transcribe/url` и вернет транскрипт.
+
+Для Google Drive подходит публичная share-ссылка на файл. Для Яндекс.Диска и
+других облаков надежнее использовать прямую публичную ссылку на скачивание.
 
 ## Модель оркестратора
 
@@ -170,7 +187,7 @@ OpenClaw использует модель для классификации в�
 | `JIRA_EMAIL` | Нет | Email аккаунта Jira |
 | `JIRA_API_TOKEN` | Нет | Jira API token (id.atlassian.com → Security) |
 | `WHISPER_MODEL_NAME` | Нет | `tiny`/`base`/`small`/`medium`/`large-v3` (default: `base`) |
-| `WHISPER_DEVICE` | Нет | `auto`/`cpu`/`cuda` (default: `auto`) |
+| `WHISPER_DEVICE` | Нет | `auto`/`cpu`/`cuda` (default: `auto`; `auto` использует CPU) |
 
 ## Структура проекта
 
