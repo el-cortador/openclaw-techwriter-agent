@@ -4,9 +4,9 @@ from pydantic import BaseModel, Field
 
 
 class GitHubRequest(BaseModel):
-    owner: str = Field(..., min_length=1)
-    repo: str = Field(..., min_length=1)
-    since: str = Field(..., min_length=1)
+    repository: str = Field(..., min_length=1)
+    date_from: str = Field(..., min_length=1)
+    date_to: str = Field(..., min_length=1)
     branch: str = ""
 
 

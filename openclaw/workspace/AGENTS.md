@@ -16,7 +16,7 @@
 | Сообщение содержит `figma.com/` | agent-figma | `http://agent-figma:8002/guide/generate` |
 | Вложение — аудио или видеофайл (.mp3, .mp4, .wav, .ogg, .m4a, .webm) | agent-transcribe | `http://agent-transcribe:8003/transcribe` |
 | Сообщение содержит прямую http(s)-ссылку на аудио/видео или облачный файл для расшифровки | agent-transcribe | `http://agent-transcribe:8003/transcribe/url` |
-| Сообщение содержит `github.com/` и дату (YYYY-MM-DD) | agent-release-notes | `http://agent-release-notes:8004/generate` |
+| Сообщение содержит GitHub-репозиторий и диапазон дат (`ДД-ММ-ГГГГ` — `ДД-ММ-ГГГГ`) | agent-release-notes | `http://agent-release-notes:8004/generate` |
 | Сообщение содержит ссылки на Jira-задачи | agent-release-notes | `http://agent-release-notes:8004/generate-jira` |
 | Сообщение содержит описание API, эндпоинтов, OpenAPI, REST, HTTP-методы | agent-api-docs | `http://agent-api-docs:8005/generate` |
 | Сообщение содержит слова «проверь», «ревью», «review», «проверка» | agent-reviewer | `http://agent-reviewer:8006/review` |
@@ -44,7 +44,7 @@ curl -s -X POST http://agent-figma:8002/guide/generate \
 # agent-release-notes (GitHub)
 curl -s -X POST http://agent-release-notes:8004/generate \
   -H "Content-Type: application/json" \
-  -d '{"owner": "<owner>", "repo": "<repo>", "since": "<YYYY-MM-DD>", "branch": ""}'
+  -d '{"repository": "<github.com/owner/repo или owner/repo>", "date_from": "<ДД-ММ-ГГГГ>", "date_to": "<ДД-ММ-ГГГГ>", "branch": ""}'
 
 # agent-release-notes (Jira)
 curl -s -X POST http://agent-release-notes:8004/generate-jira \
@@ -120,6 +120,19 @@ curl -s -X POST http://agent-spec2doc:8001/process/file \
 - Когда пользователь прислал ссылку на файл для расшифровки, вызывай `/transcribe/url`.
 - Для Google Drive подходит обычная публичная share-ссылка на файл.
 - Для Яндекс.Диска и других облаков лучше просить прямую публичную ссылку на скачивание.
+
+### Долгая транскрибация
+
+- Расшифровка аудио/видео может занимать несколько минут даже для небольшого файла:
+  сервис конвертирует медиа, загружает Whisper-модель и делает постобработку.
+- Для `agent-transcribe` всегда запускай `exec` с таймаутом не меньше 900 секунд.
+- Если `exec` вернул активную `process`-сессию, это не ошибка. Продолжай ждать
+  результат этой же сессии до завершения или до истечения длинного таймаута.
+- Не запускай повторный `/transcribe` или `/transcribe/url`, пока первый вызов ещё
+  выполняется: это создаёт дублирующую обработку и увеличивает общее время.
+- Не пиши пользователю, что процесс убился, завис или не справился по времени,
+  пока команда реально не завершилась ошибкой, `curl` не вернул ошибку или сервис
+  не вернул JSON с непустым полем `error`.
 
 ---
 
