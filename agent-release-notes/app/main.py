@@ -20,9 +20,14 @@ from app.prompts import github_prompt, jira_prompt
 from app.schemas import GitHubRequest, JiraRequest, ServiceResponse
 
 logging.basicConfig(level=logging.INFO)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="agent-release-notes", version="1.0.0")
+
+
+class GenerationError(Exception):
+    """Raised when the LLM response cannot be used as a document."""
 
 
 def _parse_repository(repository: str) -> tuple[str, str]:
@@ -74,7 +79,16 @@ def _llm_generate(prompt: str) -> str:
         temperature=0.2,
         max_tokens=MAX_TOKENS,
     )
-    return response.choices[0].message.content or ""
+    choice = response.choices[0]
+    content = (choice.message.content or "").strip()
+    logger.info(
+        "[llm] finish_reason=%s output_chars=%d",
+        getattr(choice, "finish_reason", None),
+        len(content),
+    )
+    if not content:
+        raise GenerationError("LLM вернул пустой результат для release notes/changelog")
+    return content
 
 
 def get_jira_client() -> JiraClient:
@@ -100,7 +114,14 @@ def generate_github(payload: GitHubRequest) -> ServiceResponse:
         commits = get_commits(owner, repo, since, until, payload.branch)
         if not commits:
             return ServiceResponse(result="За указанный период коммитов не найдено.")
-        prompt = github_prompt(owner, repo, display_from, display_to, commits)
+        prompt = github_prompt(
+            owner,
+            repo,
+            display_from,
+            display_to,
+            commits,
+            output_type=payload.output_type,
+        )
         return ServiceResponse(result=_llm_generate(prompt))
     except ValueError as exc:
         return ServiceResponse(error=str(exc))
@@ -109,6 +130,8 @@ def generate_github(payload: GitHubRequest) -> ServiceResponse:
     except GitHubNotFoundError as exc:
         return ServiceResponse(error=str(exc))
     except GitHubError as exc:
+        return ServiceResponse(error=str(exc))
+    except GenerationError as exc:
         return ServiceResponse(error=str(exc))
     except Exception as exc:
         logger.error("[generate] %s", exc)
@@ -127,11 +150,19 @@ def generate_jira(
         issues = jira.get_issues(urls)
         if not issues:
             return ServiceResponse(error="Не удалось распознать Jira URL")
-        prompt = jira_prompt(issues)
+        logger.info(
+            "[generate-jira] fetched issues=%d description_chars=%d output_type=%s",
+            len(issues),
+            sum(len(issue.get("description", "")) for issue in issues),
+            payload.output_type,
+        )
+        prompt = jira_prompt(issues, output_type=payload.output_type)
         return ServiceResponse(result=_llm_generate(prompt))
     except JiraAuthError as exc:
         return ServiceResponse(error=str(exc))
     except JiraRequestError as exc:
+        return ServiceResponse(error=str(exc))
+    except GenerationError as exc:
         return ServiceResponse(error=str(exc))
     except Exception as exc:
         logger.error("[generate-jira] %s", exc)

@@ -8,7 +8,7 @@ from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
 
 from app.config import ALLOWED_EXTENSIONS, MAX_FILE_SIZE
-from app.generator import generate_draft
+from app.generator import GenerationError, generate_draft
 from app.parser import ParserError, extract_text
 
 logging.basicConfig(level=logging.INFO)
@@ -38,6 +38,8 @@ def process(payload: ProcessRequest) -> ServiceResponse:
         return ServiceResponse(error="Текст постановки не может быть пустым")
     try:
         return ServiceResponse(result=generate_draft(text))
+    except GenerationError as exc:
+        return ServiceResponse(error=str(exc))
     except Exception as exc:
         logger.error("[process] %s", exc)
         return ServiceResponse(error=str(exc))
@@ -62,8 +64,12 @@ async def process_file(file: UploadFile = File(...)) -> ServiceResponse:
 
     try:
         text = extract_text(str(tmp_path))
+        if not text.strip():
+            return ServiceResponse(error="Файл не содержит текста постановки")
         return ServiceResponse(result=generate_draft(text))
     except ParserError as exc:
+        return ServiceResponse(error=str(exc))
+    except GenerationError as exc:
         return ServiceResponse(error=str(exc))
     except Exception as exc:
         logger.error("[process_file] %s", exc)

@@ -1,16 +1,38 @@
 from __future__ import annotations
 
-_INSTRUCTIONS = """\
-Сгенерируй на русском языке два блока:
+from app.schemas import OutputType
 
-## Релиз-ноты для пользователей
-Человекочитаемый список изменений без технических деталей.
-Сгруппируй по типам: Новые возможности, Улучшения, Исправления.
-Убери служебные коммиты (merge, bump version, chore и т.п.).
 
-## Changelog для разработчиков
-Формат: Added / Changed / Fixed / Removed. Markdown, с версией и датой.
-Используй семантику коммитов для классификации."""
+_RELEASE_NOTES_INSTRUCTIONS = """\
+Сгенерируй ТОЛЬКО release notes на русском языке.
+
+Требования:
+- Не добавляй changelog.
+- Не добавляй разделы Added / Changed / Fixed / Removed.
+- Сделай человекочитаемый список изменений для пользователей без лишних технических деталей.
+- Сгруппируй изменения по типам: Новые возможности, Улучшения, Исправления.
+- Убери служебные коммиты: merge, bump version, chore, dependency update и похожие.
+- Если по коммитам или задачам нельзя уверенно определить пользовательскую ценность, сформулируй осторожно и без выдуманных деталей.
+- Если данных мало, все равно сформируй краткие release notes по доступным названиям задач; не возвращай пустой ответ."""
+
+
+_CHANGELOG_INSTRUCTIONS = """\
+Сгенерируй ТОЛЬКО changelog на русском языке.
+
+Требования:
+- Не добавляй release notes для пользователей.
+- Используй Markdown.
+- Используй структуру: Added / Changed / Fixed / Removed, но содержимое пунктов пиши на русском языке.
+- Добавь заголовок с репозиторием/источником и периодом.
+- Классифицируй изменения по смыслу коммитов или задач.
+- Убери служебные коммиты: merge, bump version, chore, dependency update и похожие.
+- Не оставляй англоязычные описания коммитов без перевода."""
+
+
+def _instructions(output_type: OutputType) -> str:
+    if output_type == "changelog":
+        return _CHANGELOG_INSTRUCTIONS
+    return _RELEASE_NOTES_INSTRUCTIONS
 
 
 def github_prompt(
@@ -19,6 +41,7 @@ def github_prompt(
     date_from: str,
     date_to: str,
     commits: list[dict],
+    output_type: OutputType = "release_notes",
 ) -> str:
     lines = "\n".join(
         f"- [{c['sha']}] {c['date']} {c['author']}: {c['message']}"
@@ -28,16 +51,32 @@ def github_prompt(
         f"Репозиторий: {owner}/{repo}\n"
         f"Период: с {date_from} по {date_to}\n\n"
         f"Коммиты:\n{lines}\n\n"
-        f"{_INSTRUCTIONS}"
+        f"{_instructions(output_type)}"
     )
 
 
-def jira_prompt(issues: list[dict]) -> str:
-    lines = "\n".join(
-        f"- [{i['key']}] ({i['type']}) {i['summary']}"
-        for i in issues
-    )
+def jira_prompt(issues: list[dict], output_type: OutputType = "release_notes") -> str:
+    blocks = []
+    for issue in issues:
+        meta = [
+            f"тип: {issue.get('type', '')}",
+            f"статус: {issue.get('status', '')}",
+        ]
+        if issue.get("fix_versions"):
+            meta.append(f"fixVersion: {', '.join(issue['fix_versions'])}")
+        if issue.get("components"):
+            meta.append(f"компоненты: {', '.join(issue['components'])}")
+        if issue.get("labels"):
+            meta.append(f"labels: {', '.join(issue['labels'])}")
+
+        block = f"- [{issue['key']}] ({'; '.join(meta)}) {issue.get('summary', '')}"
+        description = issue.get("description", "").strip()
+        if description:
+            block += f"\n  Описание:\n  {description.replace(chr(10), chr(10) + '  ')}"
+        blocks.append(block)
+
+    lines = "\n".join(blocks)
     return (
         f"Jira-задачи:\n{lines}\n\n"
-        f"{_INSTRUCTIONS}"
+        f"{_instructions(output_type)}"
     )
