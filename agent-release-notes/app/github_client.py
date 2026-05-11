@@ -23,7 +23,13 @@ class GitHubNotFoundError(GitHubError):
     pass
 
 
-def get_commits(owner: str, repo: str, since: str, branch: str = "") -> list[dict]:
+def get_commits(
+    owner: str,
+    repo: str,
+    since: str,
+    until: str,
+    branch: str = "",
+) -> list[dict]:
     """Returns list of commits: {sha, message, author, date}."""
     headers = {
         "Accept": "application/vnd.github+json",
@@ -32,32 +38,49 @@ def get_commits(owner: str, repo: str, since: str, branch: str = "") -> list[dic
     if GITHUB_TOKEN:
         headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
 
-    params: dict = {"since": since, "per_page": 100}
-    if branch:
-        params["sha"] = branch
-
     url = f"{_GITHUB_API}/repos/{owner}/{repo}/commits"
-    try:
-        resp = requests.get(url, headers=headers, params=params, timeout=REQUEST_TIMEOUT)
-    except requests.RequestException as exc:
-        raise GitHubError(f"Не удалось подключиться к GitHub: {exc}") from exc
-
-    if resp.status_code in (401, 403):
-        raise GitHubAuthError("GitHub вернул 401/403. Проверьте GITHUB_TOKEN.")
-    if resp.status_code == 404:
-        raise GitHubNotFoundError(f"Репозиторий {owner}/{repo} не найден.")
-    if resp.status_code >= 400:
-        raise GitHubError(f"GitHub API ошибка {resp.status_code}")
-
     commits = []
-    for item in resp.json():
-        commit = item.get("commit", {})
-        commits.append({
-            "sha": item.get("sha", "")[:7],
-            "message": commit.get("message", "").split("\n")[0],
-            "author": commit.get("author", {}).get("name", ""),
-            "date": commit.get("author", {}).get("date", "")[:10],
-        })
+    for page in range(1, 11):
+        params: dict = {
+            "since": since,
+            "until": until,
+            "per_page": 100,
+            "page": page,
+        }
+        if branch:
+            params["sha"] = branch
 
-    logger.info("[github] repo=%s/%s since=%s commits=%d", owner, repo, since, len(commits))
+        try:
+            resp = requests.get(url, headers=headers, params=params, timeout=REQUEST_TIMEOUT)
+        except requests.RequestException as exc:
+            raise GitHubError(f"Не удалось подключиться к GitHub: {exc}") from exc
+
+        if resp.status_code in (401, 403):
+            raise GitHubAuthError("GitHub вернул 401/403. Проверьте GITHUB_TOKEN.")
+        if resp.status_code == 404:
+            raise GitHubNotFoundError(f"Репозиторий {owner}/{repo} не найден.")
+        if resp.status_code >= 400:
+            raise GitHubError(f"GitHub API ошибка {resp.status_code}")
+
+        items = resp.json()
+        for item in items:
+            commit = item.get("commit", {})
+            commits.append({
+                "sha": item.get("sha", "")[:7],
+                "message": commit.get("message", "").split("\n")[0],
+                "author": commit.get("author", {}).get("name", ""),
+                "date": commit.get("author", {}).get("date", "")[:10],
+            })
+
+        if len(items) < 100:
+            break
+
+    logger.info(
+        "[github] repo=%s/%s since=%s until=%s commits=%d",
+        owner,
+        repo,
+        since,
+        until,
+        len(commits),
+    )
     return commits

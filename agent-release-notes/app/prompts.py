@@ -13,14 +13,20 @@ _INSTRUCTIONS = """\
 Используй семантику коммитов для классификации."""
 
 
-def github_prompt(owner: str, repo: str, since: str, commits: list[dict]) -> str:
+def github_prompt(
+    owner: str,
+    repo: str,
+    date_from: str,
+    date_to: str,
+    commits: list[dict],
+) -> str:
     lines = "\n".join(
         f"- [{c['sha']}] {c['date']} {c['author']}: {c['message']}"
         for c in commits
     )
     return (
         f"Репозиторий: {owner}/{repo}\n"
-        f"Период: с {since}\n\n"
+        f"Период: с {date_from} по {date_to}\n\n"
         f"Коммиты:\n{lines}\n\n"
         f"{_INSTRUCTIONS}"
     )

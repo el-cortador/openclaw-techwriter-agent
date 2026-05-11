@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import logging
+import re
+from datetime import datetime
+from urllib.parse import urlparse
 
 from fastapi import Depends, FastAPI, HTTPException
 from openai import OpenAI
@@ -20,6 +23,47 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="agent-release-notes", version="1.0.0")
+
+
+def _parse_repository(repository: str) -> tuple[str, str]:
+    value = repository.strip()
+    if not value:
+        raise ValueError("Укажите GitHub-репозиторий")
+
+    if value.startswith(("http://", "https://")):
+        parsed = urlparse(value)
+        parts = [p for p in parsed.path.strip("/").split("/") if p]
+    else:
+        parts = [p for p in value.strip("/").split("/") if p]
+
+    if len(parts) < 2:
+        raise ValueError("Укажите репозиторий в формате owner/repo или GitHub URL")
+
+    owner = parts[0]
+    repo = re.sub(r"\.git$", "", parts[1])
+    if not owner or not repo:
+        raise ValueError("Укажите репозиторий в формате owner/repo или GitHub URL")
+    return owner, repo
+
+
+def _parse_date(value: str, field_name: str) -> datetime:
+    raw = value.strip()
+    for fmt in ("%d-%m-%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(raw, fmt)
+        except ValueError:
+            continue
+    raise ValueError(f"{field_name} должна быть в формате ДД-ММ-ГГГГ")
+
+
+def _date_range(date_from: str, date_to: str) -> tuple[str, str, str, str]:
+    start = _parse_date(date_from, "date_from")
+    end = _parse_date(date_to, "date_to")
+    if start > end:
+        raise ValueError("date_from не может быть позже date_to")
+    since = start.strftime("%Y-%m-%dT00:00:00Z")
+    until = end.strftime("%Y-%m-%dT23:59:59Z")
+    return since, until, start.strftime("%d-%m-%Y"), end.strftime("%d-%m-%Y")
 
 
 def _llm_generate(prompt: str) -> str:
@@ -48,11 +92,18 @@ def health() -> dict:
 @app.post("/generate", response_model=ServiceResponse)
 def generate_github(payload: GitHubRequest) -> ServiceResponse:
     try:
-        commits = get_commits(payload.owner, payload.repo, payload.since, payload.branch)
+        owner, repo = _parse_repository(payload.repository)
+        since, until, display_from, display_to = _date_range(
+            payload.date_from,
+            payload.date_to,
+        )
+        commits = get_commits(owner, repo, since, until, payload.branch)
         if not commits:
             return ServiceResponse(result="За указанный период коммитов не найдено.")
-        prompt = github_prompt(payload.owner, payload.repo, payload.since, commits)
+        prompt = github_prompt(owner, repo, display_from, display_to, commits)
         return ServiceResponse(result=_llm_generate(prompt))
+    except ValueError as exc:
+        return ServiceResponse(error=str(exc))
     except GitHubAuthError as exc:
         return ServiceResponse(error=str(exc))
     except GitHubNotFoundError as exc:

@@ -218,6 +218,10 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Other
+openclaw/flows/
+openclaw/media/
+openclaw/memory/
+openclaw/workspace/.learnings/
 .claude
 CLAUDE.md
 docs/specs/
