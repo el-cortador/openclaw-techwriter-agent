@@ -17,7 +17,7 @@
     ],
     "tokens": {
       "operator": {
-        "token": "jVsjhQwhn9G3bVSk0P6ezOIZW51wc4Lz8eUTCj4QKYk",
+        "token": "",
         "role": "operator",
         "scopes": [
           "operator.read",
