@@ -19,6 +19,7 @@ class GitHubRequest(BaseModel):
 class JiraRequest(BaseModel):
     urls: list[str] = Field(..., min_length=1)
     output_type: OutputType = "release_notes"
+    release_notes_text: str = ""
 
 
 class ServiceResponse(BaseModel):
