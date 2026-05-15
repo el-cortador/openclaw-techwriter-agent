@@ -227,6 +227,8 @@ CLAUDE.md
 docs/specs/
 
 # OpenClaw runtime files (generated at startup)
+openclaw/devices/paired.json
+openclaw/devices/pending.json
 openclaw/logs/
 openclaw/canvas/
 openclaw/identity/
