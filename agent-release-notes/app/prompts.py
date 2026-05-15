@@ -55,7 +55,11 @@ def github_prompt(
     )
 
 
-def jira_prompt(issues: list[dict], output_type: OutputType = "release_notes") -> str:
+def jira_prompt(
+    issues: list[dict],
+    output_type: OutputType = "release_notes",
+    release_notes_text: str = "",
+) -> str:
     blocks = []
     for issue in issues:
         meta = [
@@ -76,6 +80,18 @@ def jira_prompt(issues: list[dict], output_type: OutputType = "release_notes") -
         blocks.append(block)
 
     lines = "\n".join(blocks)
+    release_notes_text = release_notes_text.strip()
+    if release_notes_text:
+        return (
+            f"Jira-задачи:\n{lines}\n\n"
+            f"Актуальные Release Notes:\n{release_notes_text}\n\n"
+            "Сопоставь каждый пункт Release Notes с наиболее подходящей Jira-задачей.\n"
+            "Ответь только итоговым сопоставлением на русском языке простым Markdown-списком.\n"
+            "Не используй жирный шрифт, таблицы, HTML или декоративное форматирование.\n"
+            "Для каждого пункта укажи ключ Jira и короткое объяснение совпадения.\n"
+            "Если для пункта нет уверенного соответствия, укажи: Jira не определена.\n"
+            "Не придумывай факты, которых нет в Jira-задачах или Release Notes."
+        )
     return (
         f"Jira-задачи:\n{lines}\n\n"
         f"{_instructions(output_type)}"

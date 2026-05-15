@@ -156,7 +156,11 @@ def generate_jira(
             sum(len(issue.get("description", "")) for issue in issues),
             payload.output_type,
         )
-        prompt = jira_prompt(issues, output_type=payload.output_type)
+        prompt = jira_prompt(
+            issues,
+            output_type=payload.output_type,
+            release_notes_text=payload.release_notes_text,
+        )
         return ServiceResponse(result=_llm_generate(prompt))
     except JiraAuthError as exc:
         return ServiceResponse(error=str(exc))
