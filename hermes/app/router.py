@@ -22,7 +22,7 @@ def classify(message: IncomingMessage) -> Route:
     attachment = message.attachments[0] if message.attachments else None
     short_text = _short_text(lower)
 
-    if _is_styleguide_save(lower):
+    if _is_styleguide_save(lower) or (attachment and _is_styleguide_attachment(attachment, lower)):
         return Route("save_styleguide", attachment=attachment)
 
     if not attachment and _is_short_ping(short_text):
@@ -40,7 +40,7 @@ def classify(message: IncomingMessage) -> Route:
     urls = URL_RE.findall(text)
     media_url = _find_media_url(urls, lower)
     if media_url:
-        return Route("transcribe_url", urls=[media_url])
+        return Route("unsupported_media", urls=[media_url])
 
     if "figma.com/" in lower:
         figma_url = next((url for url in urls if "figma.com/" in url.lower()), None)
@@ -49,11 +49,11 @@ def classify(message: IncomingMessage) -> Route:
     if GITHUB_RE.search(text) and DATE_RE.search(text):
         return Route("github_release", urls=[GITHUB_RE.search(text).group(0)], output_type=_output_type(lower))
 
-    if _looks_like_api(lower):
-        return Route("api_docs_text")
-
     if _looks_like_review(lower):
         return Route("review")
+
+    if _looks_like_api(lower):
+        return Route("api_docs_text")
 
     return Route("spec_text")
 
@@ -62,10 +62,12 @@ def _classify_attachment(attachment: IncomingAttachment, lower: str) -> Route | 
     suffix = attachment.suffix
     content_type = (attachment.content_type or "").lower()
 
+    if _is_styleguide_attachment(attachment, lower):
+        return Route("save_styleguide", attachment=attachment)
     if suffix in API_EXTENSIONS:
         return Route("api_docs_file", attachment=attachment)
     if suffix in MEDIA_EXTENSIONS or content_type.startswith(("audio/", "video/")):
-        return Route("transcribe_file", attachment=attachment)
+        return Route("unsupported_media", attachment=attachment)
     if suffix in SPEC_EXTENSIONS:
         return Route("spec_file", attachment=attachment)
     if suffix == ".md" and "стайлгайд" in lower:
@@ -84,8 +86,33 @@ def _is_styleguide_save(lower: str) -> bool:
     )
 
 
+def _is_styleguide_attachment(attachment: IncomingAttachment, lower: str) -> bool:
+    filename = attachment.filename.lower()
+    return (
+        _is_styleguide_save(lower)
+        or "стайлгайд" in lower
+        or "стайлгайд" in filename
+        or "styleguide" in filename
+        or "style-guide" in filename
+        or "style guide" in filename
+    )
+
+
 def _looks_like_api(lower: str) -> bool:
-    api_words = ("openapi", "swagger", "endpoint", "endpoints", "rest", "api", "апи", "эндпоинт")
+    api_words = (
+        "openapi",
+        "swagger",
+        "endpoint",
+        "endpoints",
+        "rest api",
+        "api docs",
+        "api documentation",
+        "api-док",
+        "api документа",
+        "документац",
+        "эндпоинт",
+        "эндпоинты",
+    )
     http_methods = ("get /", "post /", "put /", "patch /", "delete /")
     return any(word in lower for word in api_words) or any(method in lower for method in http_methods)
 

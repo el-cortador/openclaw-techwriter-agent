@@ -15,9 +15,8 @@ RouteKind = Literal[
     "save_styleguide",
     "spec_file",
     "spec_text",
-    "transcribe_file",
-    "transcribe_url",
     "unknown_short",
+    "unsupported_media",
 ]
 
 

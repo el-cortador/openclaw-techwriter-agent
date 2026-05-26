@@ -24,20 +24,6 @@ services:
       - agent-network
     restart: unless-stopped
 
-  agent-transcribe:
-    build: ./agent-transcribe
-    environment:
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-moonshotai/kimi-k2.6}
-      WHISPER_MODEL_NAME: ${WHISPER_MODEL_NAME:-base}
-      WHISPER_DEVICE: ${WHISPER_DEVICE:-auto}
-      FFMPEG_PATH: ${FFMPEG_PATH:-ffmpeg}
-      MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-50}
-      POSTPROCESS_CHUNK_CHARS: ${POSTPROCESS_CHUNK_CHARS:-3000}
-    networks:
-      - agent-network
-    restart: unless-stopped
-
   agent-release-notes:
     build: ./agent-release-notes
     environment:
@@ -88,7 +74,6 @@ services:
     depends_on:
       - agent-spec2doc
       - agent-figma
-      - agent-transcribe
       - agent-release-notes
       - agent-api-docs
       - agent-reviewer
