@@ -218,33 +218,9 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Other
-openclaw/flows/
-openclaw/media/
-openclaw/memory/
-openclaw/workspace/.learnings/
 .claude
 CLAUDE.md
 docs/specs/
-
-# OpenClaw runtime files (generated at startup)
-openclaw/devices/paired.json
-openclaw/devices/pending.json
-openclaw/logs/
-openclaw/canvas/
-openclaw/identity/
-openclaw/tasks/
-openclaw/agents/
-openclaw/cache/
-openclaw/credentials/
-openclaw/exec-approvals.json
-openclaw/plugin-skills/
-openclaw/telegram/
-openclaw/workspace-orchestrator/
-openclaw/workspace/.openclaw/
-openclaw/update-check.json
-openclaw/openclaw.json
-openclaw/*.json.bak*
-openclaw/openclaw.json.last-good
 
 # Hermes runtime files
 hermes/state/
