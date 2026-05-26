@@ -245,3 +245,6 @@ openclaw/update-check.json
 openclaw/openclaw.json
 openclaw/*.json.bak*
 openclaw/openclaw.json.last-good
+
+# Hermes runtime files
+hermes/state/
