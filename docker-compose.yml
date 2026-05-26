@@ -2,63 +2,86 @@ services:
 
   agent-spec2doc:
     build: ./agent-spec2doc
-    ports:
-      - "8001:8001"
-    env_file: .env
+    environment:
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-moonshotai/kimi-k2.6}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-8192}
     networks:
       - agent-network
     restart: unless-stopped
 
   agent-figma:
     build: ./agent-figma
-    ports:
-      - "8002:8002"
-    env_file: .env
+    environment:
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-moonshotai/kimi-k2.6}
+      FIGMA_TOKEN: ${FIGMA_TOKEN:-}
+      FIGMA_API_BASE: ${FIGMA_API_BASE:-https://api.figma.com/v1}
+      REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-15}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.2}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-4096}
     networks:
       - agent-network
     restart: unless-stopped
 
   agent-transcribe:
     build: ./agent-transcribe
-    ports:
-      - "8003:8003"
-    env_file: .env
+    environment:
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-moonshotai/kimi-k2.6}
+      WHISPER_MODEL_NAME: ${WHISPER_MODEL_NAME:-base}
+      WHISPER_DEVICE: ${WHISPER_DEVICE:-auto}
+      FFMPEG_PATH: ${FFMPEG_PATH:-ffmpeg}
+      MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-50}
+      POSTPROCESS_CHUNK_CHARS: ${POSTPROCESS_CHUNK_CHARS:-3000}
     networks:
       - agent-network
     restart: unless-stopped
 
   agent-release-notes:
     build: ./agent-release-notes
-    ports:
-      - "8004:8004"
-    env_file: .env
+    environment:
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-moonshotai/kimi-k2.6}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      JIRA_EMAIL: ${JIRA_EMAIL:-}
+      JIRA_API_TOKEN: ${JIRA_API_TOKEN:-}
+      REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-15}
+      MAX_TOKENS: ${MAX_TOKENS:-4096}
     networks:
       - agent-network
     restart: unless-stopped
 
   agent-api-docs:
     build: ./agent-api-docs
-    ports:
-      - "8005:8005"
-    env_file: .env
+    environment:
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-moonshotai/kimi-k2.6}
     networks:
       - agent-network
     restart: unless-stopped
 
   agent-reviewer:
     build: ./agent-reviewer
-    ports:
-      - "8006:8006"
-    env_file: .env
+    environment:
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-moonshotai/kimi-k2.6}
     networks:
       - agent-network
     restart: unless-stopped
 
-  openclaw:
-    image: ghcr.io/openclaw/openclaw:latest
+  hermes-discord:
+    build: ./hermes
     volumes:
-      - ./openclaw:/home/node/.openclaw
-    env_file: .env
+      - ./hermes/state:/app/state
+    environment:
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
+      DISCORD_ALLOWED_GUILD_IDS: ${DISCORD_ALLOWED_GUILD_IDS:-}
+      DISCORD_ALLOWED_CHANNEL_IDS: ${DISCORD_ALLOWED_CHANNEL_IDS:-}
+      DISCORD_ALLOWED_USER_IDS: ${DISCORD_ALLOWED_USER_IDS:-}
+      HERMES_STATE_DIR: /app/state
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      HERMES_VISION_MODEL: ${HERMES_VISION_MODEL:-google/gemini-2.5-flash}
     networks:
       - agent-network
     restart: unless-stopped

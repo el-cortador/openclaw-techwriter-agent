@@ -4,7 +4,7 @@ import logging
 
 from openai import OpenAI
 
-from app.config import LLM_MODEL_NAME, OPENROUTER_API_KEY, SYSTEM_PROMPT_PATH
+from app.config import LLM_MAX_TOKENS, LLM_MODEL_NAME, OPENROUTER_API_KEY, SYSTEM_PROMPT_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -38,10 +38,16 @@ def generate_draft(extracted_text: str) -> str:
             {"role": "user", "content": user_message},
         ],
         temperature=0.2,
-        max_tokens=4096,
+        max_tokens=LLM_MAX_TOKENS,
     )
 
-    content = (response.choices[0].message.content or "").strip()
+    choice = response.choices[0]
+    content = (choice.message.content or "").strip()
+    logger.info(
+        "[generator] finish_reason=%s output_chars=%d",
+        getattr(choice, "finish_reason", None),
+        len(content),
+    )
     if not content:
         raise GenerationError("LLM вернул пустой черновик документации")
 
