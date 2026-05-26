@@ -29,6 +29,16 @@ class RouterTest(unittest.TestCase):
         route = classify(message("Опиши API", "openapi.yaml"))
         self.assertEqual(route.kind, "api_docs_file")
 
+    def test_styleguide_docx_filename_route(self) -> None:
+        route = classify(message("", "стайлгайд документации.docx"))
+        self.assertEqual(route.kind, "save_styleguide")
+        self.assertIsNotNone(route.attachment)
+
+    def test_styleguide_docx_message_route(self) -> None:
+        route = classify(message("это стайлгайд", "rules.docx"))
+        self.assertEqual(route.kind, "save_styleguide")
+        self.assertIsNotNone(route.attachment)
+
     def test_figma_link_route(self) -> None:
         route = classify(message("Сделай guide по https://www.figma.com/design/abc/Test"))
         self.assertEqual(route.kind, "figma_link")
@@ -41,11 +51,19 @@ class RouterTest(unittest.TestCase):
 
     def test_media_file_route(self) -> None:
         route = classify(message("Расшифруй", "call.mp4"))
-        self.assertEqual(route.kind, "transcribe_file")
+        self.assertEqual(route.kind, "unsupported_media")
 
     def test_review_route(self) -> None:
         route = classify(message("Проверь этот текст по стайлгайду"))
         self.assertEqual(route.kind, "review")
+
+    def test_api_token_alone_does_not_route_to_api_docs(self) -> None:
+        route = classify(message("Настройка MCP сервера\nX-API-Token: string\nhost: localhost:8080"))
+        self.assertEqual(route.kind, "spec_text")
+
+    def test_explicit_api_docs_route(self) -> None:
+        route = classify(message("Сделай API-документацию для GET /users"))
+        self.assertEqual(route.kind, "api_docs_text")
 
     def test_generic_text_route(self) -> None:
         route = classify(message("Нужна инструкция по новой функции"))

@@ -36,10 +36,6 @@ async def call_route(route: Route, message: IncomingMessage) -> str:
                 },
                 timeout=600,
             )
-        if route.kind == "transcribe_file":
-            return await _post_file(client, f"{config.TRANSCRIBE_URL}/transcribe", route.attachment.path, timeout=900)
-        if route.kind == "transcribe_url":
-            return await _post_json(client, f"{config.TRANSCRIBE_URL}/transcribe/url", {"url": route.urls[0]}, timeout=900)
         if route.kind == "jira_release":
             payload = {
                 "urls": route.urls or [],

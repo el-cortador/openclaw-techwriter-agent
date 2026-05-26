@@ -33,7 +33,6 @@ STYLEGUIDE_PATH: Path = STATE_DIR / "styleguide.md"
 
 SPEC2DOC_URL: str = os.getenv("AGENT_SPEC2DOC_URL", "http://agent-spec2doc:8001")
 FIGMA_URL: str = os.getenv("AGENT_FIGMA_URL", "http://agent-figma:8002")
-TRANSCRIBE_URL: str = os.getenv("AGENT_TRANSCRIBE_URL", "http://agent-transcribe:8003")
 RELEASE_NOTES_URL: str = os.getenv("AGENT_RELEASE_NOTES_URL", "http://agent-release-notes:8004")
 API_DOCS_URL: str = os.getenv("AGENT_API_DOCS_URL", "http://agent-api-docs:8005")
 REVIEWER_URL: str = os.getenv("AGENT_REVIEWER_URL", "http://agent-reviewer:8006")
