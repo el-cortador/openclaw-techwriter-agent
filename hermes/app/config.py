@@ -25,14 +25,19 @@ DISCORD_ALLOWED_CHANNEL_IDS: set[int] = _csv_ints("DISCORD_ALLOWED_CHANNEL_IDS")
 DISCORD_ALLOWED_USER_IDS: set[int] = _csv_ints("DISCORD_ALLOWED_USER_IDS")
 
 OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
+LLM_MODEL_NAME: str = os.getenv("LLM_MODEL_NAME", "moonshotai/kimi-k2.6")
+LLM_MAX_TOKENS: int = int(os.getenv("LLM_MAX_TOKENS", "8192"))
+LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.2"))
 HERMES_VISION_MODEL: str = os.getenv("HERMES_VISION_MODEL", "google/gemini-2.5-flash")
+
+GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
+JIRA_EMAIL: str = os.getenv("JIRA_EMAIL", "")
+JIRA_API_TOKEN: str = os.getenv("JIRA_API_TOKEN", "")
+FIGMA_TOKEN: str = os.getenv("FIGMA_TOKEN", "")
+FIGMA_API_BASE: str = os.getenv("FIGMA_API_BASE", "https://api.figma.com/v1")
+REQUEST_TIMEOUT: float = float(os.getenv("REQUEST_TIMEOUT", "15"))
+RELEASE_NOTES_MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "4096"))
 
 STATE_DIR: Path = Path(os.getenv("HERMES_STATE_DIR", "/app/state"))
 STATE_DIR.mkdir(parents=True, exist_ok=True)
 STYLEGUIDE_PATH: Path = STATE_DIR / "styleguide.md"
-
-SPEC2DOC_URL: str = os.getenv("AGENT_SPEC2DOC_URL", "http://agent-spec2doc:8001")
-FIGMA_URL: str = os.getenv("AGENT_FIGMA_URL", "http://agent-figma:8002")
-RELEASE_NOTES_URL: str = os.getenv("AGENT_RELEASE_NOTES_URL", "http://agent-release-notes:8004")
-API_DOCS_URL: str = os.getenv("AGENT_API_DOCS_URL", "http://agent-api-docs:8005")
-REVIEWER_URL: str = os.getenv("AGENT_REVIEWER_URL", "http://agent-reviewer:8006")

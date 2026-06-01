@@ -47,7 +47,7 @@ class HermesDiscordClient(discord.Client):
 async def _handle_route(route, incoming: IncomingMessage) -> str:
     if route.kind == "unknown_short":
         return "Я на связи. Пришлите задачу или материал."
-    if route.kind == "figma_link":
+    if route.kind == "figma_link" and route.attachment:
         if route.attachment:
             answer = await asyncio.to_thread(describe_ui_screenshot, route.attachment, incoming.content)
             logger.info("route=%s answer_chars=%d", route.kind, len(answer))

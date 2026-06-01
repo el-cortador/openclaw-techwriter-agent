@@ -1,61 +1,4 @@
 services:
-
-  agent-spec2doc:
-    build: ./agent-spec2doc
-    environment:
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-moonshotai/kimi-k2.6}
-      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-8192}
-    networks:
-      - agent-network
-    restart: unless-stopped
-
-  agent-figma:
-    build: ./agent-figma
-    environment:
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-moonshotai/kimi-k2.6}
-      FIGMA_TOKEN: ${FIGMA_TOKEN:-}
-      FIGMA_API_BASE: ${FIGMA_API_BASE:-https://api.figma.com/v1}
-      REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-15}
-      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.2}
-      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-4096}
-    networks:
-      - agent-network
-    restart: unless-stopped
-
-  agent-release-notes:
-    build: ./agent-release-notes
-    environment:
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-moonshotai/kimi-k2.6}
-      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
-      JIRA_EMAIL: ${JIRA_EMAIL:-}
-      JIRA_API_TOKEN: ${JIRA_API_TOKEN:-}
-      REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-15}
-      MAX_TOKENS: ${MAX_TOKENS:-4096}
-    networks:
-      - agent-network
-    restart: unless-stopped
-
-  agent-api-docs:
-    build: ./agent-api-docs
-    environment:
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-moonshotai/kimi-k2.6}
-    networks:
-      - agent-network
-    restart: unless-stopped
-
-  agent-reviewer:
-    build: ./agent-reviewer
-    environment:
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-moonshotai/kimi-k2.6}
-    networks:
-      - agent-network
-    restart: unless-stopped
-
   hermes-discord:
     build: ./hermes
     volumes:
@@ -67,16 +10,20 @@ services:
       DISCORD_ALLOWED_USER_IDS: ${DISCORD_ALLOWED_USER_IDS:-}
       HERMES_STATE_DIR: /app/state
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-moonshotai/kimi-k2.6}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-8192}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.2}
       HERMES_VISION_MODEL: ${HERMES_VISION_MODEL:-google/gemini-2.5-flash}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      JIRA_EMAIL: ${JIRA_EMAIL:-}
+      JIRA_API_TOKEN: ${JIRA_API_TOKEN:-}
+      FIGMA_TOKEN: ${FIGMA_TOKEN:-}
+      FIGMA_API_BASE: ${FIGMA_API_BASE:-https://api.figma.com/v1}
+      REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-15}
+      MAX_TOKENS: ${MAX_TOKENS:-4096}
     networks:
       - agent-network
     restart: unless-stopped
-    depends_on:
-      - agent-spec2doc
-      - agent-figma
-      - agent-release-notes
-      - agent-api-docs
-      - agent-reviewer
 
 networks:
   agent-network:
