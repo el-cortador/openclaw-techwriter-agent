@@ -1,4 +1,16 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-agent_dashboard}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - agent-network
+    restart: unless-stopped
+
   hermes-discord:
     build: ./hermes
     volumes:
@@ -10,7 +22,7 @@ services:
       DISCORD_ALLOWED_USER_IDS: ${DISCORD_ALLOWED_USER_IDS:-}
       HERMES_STATE_DIR: /app/state
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-moonshotai/kimi-k2.6}
+      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-deepseek/deepseek-v4-pro}
       LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-8192}
       LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.2}
       HERMES_VISION_MODEL: ${HERMES_VISION_MODEL:-google/gemini-2.5-flash}
@@ -21,10 +33,43 @@ services:
       FIGMA_API_BASE: ${FIGMA_API_BASE:-https://api.figma.com/v1}
       REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-15}
       MAX_TOKENS: ${MAX_TOKENS:-4096}
+      PROJECT_SLUG: ${PROJECT_SLUG:-techwriter-super-agent}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/agent_dashboard}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LLM_COST_INPUT_PER_1M: ${LLM_COST_INPUT_PER_1M:-0.435}
+      LLM_COST_OUTPUT_PER_1M: ${LLM_COST_OUTPUT_PER_1M:-0.87}
+      VISION_COST_INPUT_PER_1M: ${VISION_COST_INPUT_PER_1M:-0.30}
+      VISION_COST_OUTPUT_PER_1M: ${VISION_COST_OUTPUT_PER_1M:-2.50}
     networks:
       - agent-network
     restart: unless-stopped
+    depends_on:
+      - postgres
+
+  dashboard-api:
+    build: ./dashboard-api
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/agent_dashboard}
+      PROJECT_SLUG: ${PROJECT_SLUG:-techwriter-super-agent}
+    networks:
+      - agent-network
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
+  dashboard-ui:
+    build: ./dashboard-ui
+    ports:
+      - "${DASHBOARD_PORT:-4173}:4173"
+    networks:
+      - agent-network
+    restart: unless-stopped
+    depends_on:
+      - dashboard-api
 
 networks:
   agent-network:
     driver: bridge
+
+volumes:
+  postgres-data:

@@ -226,3 +226,7 @@ docs/specs/
 hermes/state/
 hermes/skills/
 HERMES_DISCORD.md
+
+# Dashboard UI build artifacts
+dashboard-ui/node_modules/
+dashboard-ui/dist/
