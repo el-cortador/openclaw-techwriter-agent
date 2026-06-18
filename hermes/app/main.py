@@ -1,17 +1,19 @@
 from __future__ import annotations
 
-import logging
-
 import discord
 
-from app.config import DISCORD_BOT_TOKEN
+from app import telemetry
+from app.config import DATABASE_URL, DISCORD_BOT_TOKEN, LOG_LEVEL
 from app.discord_bot import HermesDiscordClient
+from app.logging_setup import configure_logging
 
 
 def main() -> None:
-    logging.basicConfig(level=logging.INFO)
+    configure_logging(LOG_LEVEL)
     if not DISCORD_BOT_TOKEN:
         raise RuntimeError("DISCORD_BOT_TOKEN is not set")
+    if DATABASE_URL:
+        telemetry.initialize()
 
     intents = discord.Intents.default()
     intents.message_content = True
