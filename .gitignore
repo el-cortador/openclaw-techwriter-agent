@@ -224,4 +224,5 @@ docs/specs/
 
 # Hermes runtime files
 hermes/state/
+hermes/skills/
 HERMES_DISCORD.md
