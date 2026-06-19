@@ -60,7 +60,7 @@ services:
   dashboard-ui:
     build: ./dashboard-ui
     ports:
-      - "${DASHBOARD_PORT:-4173}:4173"
+      - "127.0.0.1:${DASHBOARD_PORT:-4173}:4173"
     networks:
       - agent-network
     restart: unless-stopped
