@@ -1,6 +1,6 @@
-# techwriter-super-agent
+# techwriter-multi-agent
 
-`techwriter-super-agent` is a self-hosted Discord documentation assistant with a built-in analytics dashboard.
+`techwriter-multi-agent` is a self-hosted Discord documentation assistant with a built-in analytics dashboard.
 
 This alpha release includes:
 - a Discord gateway that routes requests to local documentation skills
@@ -62,7 +62,7 @@ Core runtime:
 - `DISCORD_ALLOWED_USER_IDS`
 
 Project/runtime defaults:
-- `PROJECT_SLUG=techwriter-super-agent`
+- `PROJECT_SLUG=techwriter-multi-agent`
 - `LLM_MODEL_NAME=deepseek/deepseek-v4-pro`
 - `HERMES_VISION_MODEL=google/gemini-2.5-flash`
 
@@ -125,5 +125,5 @@ v0.1.0-alpha.1
 Recommended release title:
 
 ```text
-techwriter-super-agent v0.1.0-alpha.1
+techwriter-multi-agent v0.1.0-alpha.1
 ```
