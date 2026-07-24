@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import unittest
-import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.models import IncomingAttachment, IncomingMessage
 from app.router import classify
@@ -19,65 +16,70 @@ def message(content: str, filename: str | None = None) -> IncomingMessage:
 
 class RouterTest(unittest.TestCase):
     def test_jira_urls_route_to_release_notes(self) -> None:
-        route = classify(message("Сделай release notes https://example.atlassian.net/browse/ABC-123"))
+        route = classify(message("Make release notes https://example.atlassian.net/browse/ABC-123"))
         self.assertEqual(route.kind, "jira_release")
         self.assertEqual(route.output_type, "release_notes")
 
     def test_changelog_github_with_dates(self) -> None:
-        route = classify(message("changelog https://github.com/acme/app с 01.01.2026 по 31.01.2026"))
+        route = classify(message("changelog https://github.com/acme/app from 2026-01-01 to 2026-01-31"))
         self.assertEqual(route.kind, "github_release")
         self.assertEqual(route.output_type, "changelog")
 
     def test_openapi_file_route(self) -> None:
-        route = classify(message("Опиши API", "openapi.yaml"))
+        route = classify(message("Describe API", "openapi.yaml"))
         self.assertEqual(route.kind, "api_docs_file")
 
     def test_styleguide_docx_filename_route(self) -> None:
-        route = classify(message("", "стайлгайд документации.docx"))
+        route = classify(message("", "styleguide docs.docx"))
         self.assertEqual(route.kind, "save_styleguide")
         self.assertIsNotNone(route.attachment)
 
     def test_styleguide_docx_message_route(self) -> None:
-        route = classify(message("это стайлгайд", "rules.docx"))
+        route = classify(message("styleguide:", "rules.docx"))
         self.assertEqual(route.kind, "save_styleguide")
         self.assertIsNotNone(route.attachment)
 
     def test_figma_link_route(self) -> None:
-        route = classify(message("Сделай guide по https://www.figma.com/design/abc/Test"))
+        route = classify(message("Create guide for https://www.figma.com/design/abc/Test"))
         self.assertEqual(route.kind, "figma_link")
         self.assertEqual(route.urls, ["https://www.figma.com/design/abc/Test"])
 
     def test_ui_screenshot_route_keeps_attachment(self) -> None:
-        route = classify(message("Сделай guide по макету", "screen.png"))
+        route = classify(message("Create guide for layout", "screen.png"))
         self.assertEqual(route.kind, "figma_link")
         self.assertIsNotNone(route.attachment)
 
     def test_media_file_route(self) -> None:
-        route = classify(message("Расшифруй", "call.mp4"))
+        route = classify(message("Transcribe this", "call.mp4"))
         self.assertEqual(route.kind, "unsupported_media")
 
     def test_review_route(self) -> None:
-        route = classify(message("Проверь этот текст по стайлгайду"))
+        route = classify(message("review this text by styleguide"))
         self.assertEqual(route.kind, "review")
 
     def test_api_token_alone_does_not_route_to_api_docs(self) -> None:
-        route = classify(message("Настройка MCP сервера\nX-API-Token: string\nhost: localhost:8080"))
+        route = classify(message("MCP server setup\nX-API-Token: string\nhost: localhost:8080"))
         self.assertEqual(route.kind, "spec_text")
 
     def test_explicit_api_docs_route(self) -> None:
-        route = classify(message("Сделай API-документацию для GET /users"))
+        route = classify(message("Create API docs for GET /users"))
         self.assertEqual(route.kind, "api_docs_text")
 
     def test_generic_text_route(self) -> None:
-        route = classify(message("Нужна инструкция по новой функции"))
+        route = classify(message("Need an instruction for a new feature"))
         self.assertEqual(route.kind, "spec_text")
 
+    def test_release_notes_intent_without_source_does_not_fall_back_to_spec(self) -> None:
+        route = classify(message("Collect release notes for the new feature"))
+        self.assertEqual(route.kind, "release_request")
+        self.assertEqual(route.output_type, "release_notes")
+
     def test_short_greeting_route(self) -> None:
-        route = classify(message("привет"))
+        route = classify(message("hello"))
         self.assertEqual(route.kind, "unknown_short")
 
     def test_short_greeting_with_discord_mention_route(self) -> None:
-        route = classify(message("<@1508830390981497062> привет\u200b"))
+        route = classify(message("<@1508830390981497062> hello\u200b"))
         self.assertEqual(route.kind, "unknown_short")
 
 

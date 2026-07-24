@@ -8,7 +8,7 @@ import yaml
 
 from app import config
 from app.skills.llm import generate_text
-from app.skills.prompts import API_DOCS_SYSTEM_PROMPT
+from app.skills.loader import load_instructions
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ def generate_api_docs(input_text: str) -> str:
     logger.info("[api-docs] model=%s chars=%d", config.LLM_MODEL_NAME, len(input_text))
     return generate_text(
         [
-            {"role": "system", "content": API_DOCS_SYSTEM_PROMPT},
+            {"role": "system", "content": load_instructions("api-docs")},
             {"role": "user", "content": input_text},
         ],
         temperature=0.2,

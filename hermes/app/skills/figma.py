@@ -9,6 +9,7 @@ import httpx
 
 from app import config
 from app.skills.llm import generate_text
+from app.skills.loader import load_instructions
 
 logger = logging.getLogger(__name__)
 
@@ -125,16 +126,12 @@ def filter_figma_json(figma_json: dict[str, Any]) -> dict[str, Any]:
 
 def build_prompt(filtered_json: dict, language: str, detail_level: str, audience: str) -> str:
     limited_json = _limit_elements(filtered_json, per_screen_limit=16, screen_limit=12)
+    template = load_instructions("figma-guide")
     return (
-        "Ты - технический писатель и аналитик пользовательских сценариев. "
-        "По данным Figma сгенерируй руководство по интерфейсу на русском языке.\n\n"
-        "Если передан один экран, опиши назначение экрана, элементы и порядок действий. "
-        "Если передан wireflow или набор wireframes, анализируй их как возможный пользовательский путь: "
-        "выдели цель сценария, последовательность экранов, переходы, пользовательские действия, состояния, "
-        "развилки и ограничения. Описывай только элементы и связи из переданных данных; не придумывай скрытые функции.\n\n"
-        f"Язык: {language}\nДетализация: {detail_level}\nАудитория: {audience}\n\n"
-        f"Данные об интерфейсе (JSON):\n{json.dumps(limited_json, ensure_ascii=False)}\n\n"
-        "Формат ответа:\nMARKDOWN:\n<текст с логическими блоками>\n\nJSON:\n<json>"
+        template.replace("{{LANGUAGE}}", language)
+        .replace("{{DETAIL_LEVEL}}", detail_level)
+        .replace("{{AUDIENCE}}", audience)
+        .replace("{{DATA}}", json.dumps(limited_json, ensure_ascii=False))
     )
 
 

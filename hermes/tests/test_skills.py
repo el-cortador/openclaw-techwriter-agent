@@ -2,11 +2,8 @@ from __future__ import annotations
 
 import tempfile
 import unittest
-import sys
 from pathlib import Path
 from unittest.mock import patch
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.models import IncomingAttachment, IncomingMessage, Route
 from app.skills import api_docs, figma, release_notes
@@ -94,6 +91,12 @@ paths:
             branch="",
             output_type="changelog",
         )
+
+    async def test_release_request_without_source_returns_explicit_error(self) -> None:
+        message = IncomingMessage(content="Collect release notes for the new feature", attachments=[])
+
+        with self.assertRaisesRegex(Exception, "release notes"):
+            await run_route(Route("release_request"), message)
 
 
 class SkillUnitTest(unittest.TestCase):

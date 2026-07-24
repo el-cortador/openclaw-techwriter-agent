@@ -5,7 +5,7 @@ from pathlib import Path
 
 from app import config
 from app.skills.llm import generate_text
-from app.skills.prompts import SPEC2DOC_SYSTEM_PROMPT
+from app.skills.loader import load_instructions
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ def generate_draft(extracted_text: str) -> str:
     logger.info("[spec2doc] model=%s chars=%d", config.LLM_MODEL_NAME, len(extracted_text))
     return generate_text(
         [
-            {"role": "system", "content": SPEC2DOC_SYSTEM_PROMPT},
+            {"role": "system", "content": load_instructions("spec2doc")},
             {"role": "user", "content": user_message},
         ],
         temperature=0.2,

@@ -12,7 +12,9 @@ services:
     restart: unless-stopped
 
   hermes-discord:
-    build: ./hermes
+    build:
+      context: .
+      dockerfile: hermes/Dockerfile
     volumes:
       - ./hermes/state:/app/state
     environment:
@@ -21,6 +23,7 @@ services:
       DISCORD_ALLOWED_CHANNEL_IDS: ${DISCORD_ALLOWED_CHANNEL_IDS:-}
       DISCORD_ALLOWED_USER_IDS: ${DISCORD_ALLOWED_USER_IDS:-}
       HERMES_STATE_DIR: /app/state
+      HERMES_SKILLS_DIR: /app/skills
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       LLM_MODEL_NAME: ${LLM_MODEL_NAME:-deepseek/deepseek-v4-pro}
       LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-8192}

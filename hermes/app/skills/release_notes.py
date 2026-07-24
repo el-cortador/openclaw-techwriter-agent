@@ -11,6 +11,7 @@ from requests.auth import HTTPBasicAuth
 
 from app import config
 from app.skills.llm import generate_text
+from app.skills.loader import load_instructions
 
 logger = logging.getLogger(__name__)
 
@@ -230,15 +231,7 @@ def _adf_to_text(value: object) -> str:
 
 
 def _instructions(output_type: OutputType) -> str:
-    if output_type == "changelog":
-        return (
-            "Сгенерируй только changelog на русском языке. Используй Markdown и разделы "
-            "Added / Changed / Fixed / Removed. Не придумывай факты."
-        )
-    return (
-        "Сгенерируй только release notes на русском языке. Сгруппируй изменения по типам: "
-        "Новые возможности, Улучшения, Исправления. Не добавляй changelog и не придумывай факты."
-    )
+    return load_instructions("release-notes", f"instructions-{output_type}.md")
 
 
 def _github_prompt(
@@ -277,7 +270,6 @@ def _jira_prompt(
     if release_notes_text.strip():
         return (
             f"Jira-задачи:\n{lines}\n\nАктуальные Release Notes:\n{release_notes_text.strip()}\n\n"
-            "Сопоставь каждый пункт Release Notes с наиболее подходящей Jira-задачей. "
-            "Ответь итоговым сопоставлением на русском языке простым Markdown-списком."
+            f"{load_instructions('release-notes', 'instructions-mapping.md')}"
         )
     return f"Jira-задачи:\n{lines}\n\n{_instructions(output_type)}"

@@ -227,6 +227,11 @@ hermes/state/
 hermes/skills/
 HERMES_DISCORD.md
 
+# Agent state and secrets policy (never commit)
+auth.json
+state.db
+sessions/
+
 # Dashboard UI build artifacts
 dashboard-ui/node_modules/
 dashboard-ui/dist/

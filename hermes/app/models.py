@@ -11,6 +11,7 @@ RouteKind = Literal[
     "figma_link",
     "github_release",
     "jira_release",
+    "release_request",
     "review",
     "save_styleguide",
     "spec_file",

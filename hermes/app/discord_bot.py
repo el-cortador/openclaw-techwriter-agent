@@ -15,7 +15,7 @@ import discord
 from app import config, telemetry
 from app.models import IncomingAttachment, IncomingMessage
 from app.router import classify
-from app.service_client import ServiceError, call_route
+from app.skills.runner import SkillError, run_route
 from app.styleguide import extract_styleguide_text
 from app.telemetry_context import reset_current_run_id, set_current_run_id
 from app.vision import describe_ui_screenshot
@@ -47,7 +47,7 @@ class HermesDiscordClient(discord.Client):
                     if telemetry_state:
                         await asyncio.to_thread(_complete_telemetry_success, telemetry_state, answer)
                     await _send_answer(discord_message, answer, _result_filename(route, incoming))
-            except ServiceError as exc:
+            except SkillError as exc:
                 if telemetry_state:
                     await asyncio.to_thread(_complete_telemetry_failure, telemetry_state, str(exc))
                 await _send_answer(discord_message, f"Ошибка сервиса: {exc}")
@@ -74,12 +74,12 @@ async def _handle_route(route, incoming: IncomingMessage) -> str:
             text = extract_styleguide_text(route.attachment)
         text = _strip_styleguide_prefix(text)
         if not text:
-            raise ServiceError("Стильгайд пустой.")
+            raise SkillError("Стильгайд пустой.")
         config.STYLEGUIDE_PATH.write_text(text, encoding="utf-8")
         return "Стайлгайд сохранен. Буду применять его при следующих ревью."
     if route.kind == "unsupported_media":
         return "Транскрибация аудио и видео в Discord отключена из-за лимитов на размер вложений."
-    answer = await call_route(route, incoming)
+    answer = await run_route(route, incoming)
     logger.info("route=%s answer_chars=%d", route.kind, len(answer), extra={"route_kind": route.kind})
     return answer
 
@@ -257,6 +257,8 @@ def _route_filename_part(route) -> str:
         return "figma-guide"
     if route.kind in {"jira_release", "github_release"}:
         return "changelog" if route.output_type == "changelog" else "release-notes"
+    if route.kind == "release_request":
+        return "changelog-request" if route.output_type == "changelog" else "release-notes-request"
     if route.kind == "review":
         return "review"
     if route.kind == "save_styleguide":

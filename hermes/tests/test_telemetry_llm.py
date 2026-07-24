@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import unittest
 import sys
-from pathlib import Path
+import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.skills.llm import generate_text
 from app.telemetry_context import reset_current_run_id, set_current_run_id

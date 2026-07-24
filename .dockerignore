@@ -1,0 +1,10 @@
+.git
+.env
+.venv
+**/__pycache__
+**/.pytest_cache
+**/*.pyc
+dashboard-ui/node_modules
+dashboard-ui/dist
+hermes/state
+hermes/skills
