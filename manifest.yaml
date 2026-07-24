@@ -1,0 +1,45 @@
+id: techwriter-super-agent
+name: Techwriter Super Agent
+description: >
+  Self-hosted Discord-ассистент технического писателя: черновики инструкций
+  из постановок, документация по API, редакторское ревью, release notes и
+  changelog из GitHub/Jira, руководства по интерфейсам из Figma и скриншотов.
+  Включает Postgres-телеметрию и дашборд аналитики.
+owner: personal
+
+runtimes:
+  hermes:
+    supported: true
+    docs: runtimes/hermes/README.md
+    install:
+      linux: runtimes/hermes/install.sh
+      windows: runtimes/hermes/install.ps1
+    skills:
+      required:
+        - spec2doc
+        - api-docs
+        - doc-reviewer
+        - release-notes
+        - figma-guide
+      optional: []
+
+integrations:
+  required:
+    - discord
+    - openrouter
+    - postgres
+  optional:
+    - github
+    - jira
+    - figma
+
+secrets:
+  required:
+    - DISCORD_BOT_TOKEN
+    - OPENROUTER_API_KEY
+    - POSTGRES_PASSWORD
+  optional:
+    - GITHUB_TOKEN
+    - JIRA_EMAIL
+    - JIRA_API_TOKEN
+    - FIGMA_TOKEN

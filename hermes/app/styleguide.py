@@ -5,7 +5,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 from app.models import IncomingAttachment
-from app.service_client import ServiceError
+from app.skills.runner import SkillError
 
 
 def extract_styleguide_text(attachment: IncomingAttachment) -> str:
@@ -15,8 +15,8 @@ def extract_styleguide_text(attachment: IncomingAttachment) -> str:
     if suffix == ".docx":
         return _extract_docx_text(attachment.path).strip()
     if suffix == ".pdf":
-        raise ServiceError("PDF-стайлгайд пока не извлекается. Пришлите стайлгайд в DOCX, MD или текстом.")
-    raise ServiceError("Неподдерживаемый формат стайлгайда. Пришлите DOCX, MD или текст.")
+        raise SkillError("PDF-стайлгайд пока не извлекается. Пришлите стайлгайд в DOCX, MD или текстом.")
+    raise SkillError("Неподдерживаемый формат стайлгайда. Пришлите DOCX, MD или текст.")
 
 
 def _extract_docx_text(path: Path) -> str:
@@ -24,7 +24,7 @@ def _extract_docx_text(path: Path) -> str:
         with zipfile.ZipFile(path) as archive:
             xml = archive.read("word/document.xml")
     except (KeyError, zipfile.BadZipFile) as exc:
-        raise ServiceError("Не удалось прочитать DOCX-стайлгайд.") from exc
+        raise SkillError("Не удалось прочитать DOCX-стайлгайд.") from exc
 
     root = ElementTree.fromstring(xml)
     namespace = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}

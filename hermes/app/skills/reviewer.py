@@ -4,7 +4,7 @@ import logging
 
 from app import config
 from app.skills.llm import generate_text
-from app.skills.prompts import REVIEWER_SYSTEM_PROMPT
+from app.skills.loader import load_instructions
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ def review(text: str, styleguide: str | None) -> str:
     logger.info("[reviewer] model=%s styleguide=%s", config.LLM_MODEL_NAME, bool(styleguide))
     result = generate_text(
         [
-            {"role": "system", "content": REVIEWER_SYSTEM_PROMPT},
+            {"role": "system", "content": load_instructions("doc-reviewer")},
             {"role": "user", "content": user_message},
         ],
         temperature=0.1,

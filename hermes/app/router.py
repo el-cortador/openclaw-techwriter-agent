@@ -49,6 +49,9 @@ def classify(message: IncomingMessage) -> Route:
     if GITHUB_RE.search(text) and DATE_RE.search(text):
         return Route("github_release", urls=[GITHUB_RE.search(text).group(0)], output_type=_output_type(lower))
 
+    if _looks_like_release_request(lower):
+        return Route("release_request", output_type=_output_type(lower))
+
     if _looks_like_review(lower):
         return Route("review")
 
@@ -119,6 +122,23 @@ def _looks_like_api(lower: str) -> bool:
 
 def _looks_like_review(lower: str) -> bool:
     return any(word in lower for word in ("review", "ревью", "проверь", "проверка", "проверить"))
+
+
+def _looks_like_release_request(lower: str) -> bool:
+    keywords = (
+        "release notes",
+        "release note",
+        "release-notes",
+        "релиз ноут",
+        "релиз-ноут",
+        "релизноут",
+        "заметки к релизу",
+        "notes к релизу",
+        "changelog",
+        "change log",
+        "журнал изменений",
+    )
+    return any(word in lower for word in keywords)
 
 
 def _is_short_ping(cleaned: str) -> bool:

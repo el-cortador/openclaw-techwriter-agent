@@ -50,3 +50,10 @@ VISION_COST_OUTPUT_PER_1M: Decimal = Decimal(os.getenv("VISION_COST_OUTPUT_PER_1
 STATE_DIR: Path = Path(os.getenv("HERMES_STATE_DIR", "/app/state"))
 STATE_DIR.mkdir(parents=True, exist_ok=True)
 STYLEGUIDE_PATH: Path = STATE_DIR / "styleguide.md"
+
+_skills_dir_env = os.getenv("HERMES_SKILLS_DIR", "")
+SKILLS_DIR: Path = (
+    Path(_skills_dir_env)
+    if _skills_dir_env
+    else Path(__file__).resolve().parents[2] / "runtimes" / "hermes" / "skills"
+)

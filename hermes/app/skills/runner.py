@@ -77,7 +77,7 @@ class ReviewerSkill:
 
 class ReleaseNotesSkill:
     name = "release_notes"
-    route_kinds = frozenset({"github_release", "jira_release"})
+    route_kinds = frozenset({"github_release", "jira_release", "release_request"})
 
     async def run(self, context: SkillContext) -> str:
         route = context.route
@@ -90,6 +90,16 @@ class ReleaseNotesSkill:
                 urls=route.urls or [],
                 output_type=route.output_type,
                 release_notes_text=_release_notes_context(context.message.content, route.urls or []),
+            )
+        if route.kind == "release_request":
+            if route.output_type == "changelog":
+                raise SkillError(
+                    "Запрос распознан как changelog, но не хватает источника данных. "
+                    "Пришлите ссылку на GitHub-репозиторий и даты или Jira URL задач."
+                )
+            raise SkillError(
+                "Запрос распознан как release notes, но не хватает источника данных. "
+                "Пришлите Jira URL задач или ссылку на GitHub-репозиторий с датами."
             )
         raise SkillError("Маршрут release-notes не содержит входных данных.")
 

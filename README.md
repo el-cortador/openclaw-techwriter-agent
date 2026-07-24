@@ -32,10 +32,26 @@ Current alpha limitations:
 - `dashboard-api`: analytics API over telemetry data
 - `dashboard-ui`: browser UI for project metrics
 
+## Repository Layout
+
+```text
+manifest.yaml          agent contract (skills, secrets, runtime)
+core/                  runtime-independent behavior spec
+runtimes/hermes/       skill packages, install/verify scripts, ops docs
+hermes/                Discord gateway code, tests, Dockerfile
+dashboard-api/         analytics API
+dashboard-ui/          analytics UI
+```
+
 ## Quick Start
 
-1. Copy `.env.example` to `.env`.
-2. Fill in the required secrets:
+1. Run the installer (creates `.env` from `.env.example`, never overwrites):
+
+```powershell
+runtimes\hermes\install.ps1
+```
+
+2. Fill in the required secrets in `.env`:
    - `DISCORD_BOT_TOKEN`
    - `OPENROUTER_API_KEY`
    - `FIGMA_TOKEN` if Figma flows are needed
@@ -109,21 +125,27 @@ The dashboard currently exposes:
 The current alpha was verified with:
 
 ```powershell
-python -m unittest discover hermes\tests
-python -m compileall hermes dashboard-api
+python -m venv .venv
+.venv/Scripts/pip install -r hermes/requirements.txt pytest
+.venv/Scripts/python -m pytest hermes/tests -q
+.venv/Scripts/python -m compileall hermes dashboard-api -q
+docker compose config -q
+runtimes\hermes\scripts\verify-install.ps1
 docker compose up -d --build
 ```
+
+Manual end-to-end checklist: `runtimes/hermes/docs/SMOKE_TEST_PLAN.md`.
 
 ## Release Recommendation
 
 For GitHub Releases, publish this version as:
 
 ```text
-v0.1.0-alpha.1
+v0.2.0-alpha.1
 ```
 
 Recommended release title:
 
 ```text
-techwriter-multi-agent v0.1.0-alpha.1
+techwriter-multi-agent v0.2.0-alpha.1
 ```

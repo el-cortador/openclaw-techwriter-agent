@@ -8,29 +8,19 @@ from openai import OpenAI
 
 from app import config, telemetry
 from app.models import IncomingAttachment
-from app.service_client import ServiceError
+from app.skills.loader import load_instructions
+from app.skills.runner import SkillError
 from app.telemetry_context import get_current_run_id
 
 
 def describe_ui_screenshot(attachment: IncomingAttachment, user_text: str) -> str:
     if not config.OPENROUTER_API_KEY:
-        raise ServiceError("OPENROUTER_API_KEY не задан для обработки изображений.")
+        raise SkillError("OPENROUTER_API_KEY не задан для обработки изображений.")
 
     media_type = attachment.content_type or mimetypes.guess_type(attachment.filename)[0] or "image/png"
     encoded = base64.b64encode(attachment.path.read_bytes()).decode("ascii")
 
-    prompt = (
-        "Ты — технический писатель. По скриншоту интерфейса составь user guide на русском языке.\n"
-        "Описывай только видимые элементы и очевидное поведение. Не придумывай скрытые функции или бизнес-логику.\n"
-        "Если часть текста не читается или экран неполный, явно укажи ограничение.\n"
-        "Не добавляй вступительные и заключительные фразы. Используй нейтральный технический стиль.\n"
-        "Структура ответа:\n"
-        "1. Назначение экрана\n"
-        "2. Основные элементы\n"
-        "3. Порядок действий пользователя\n"
-        "4. Проверки и ограничения\n"
-        "5. Результат действия\n"
-    )
+    prompt = load_instructions("figma-guide", "instructions-screenshot.md")
     if user_text.strip():
         prompt += f"\nДополнительный запрос пользователя:\n{user_text.strip()}"
 
@@ -78,5 +68,5 @@ def describe_ui_screenshot(attachment: IncomingAttachment, user_text: str) -> st
         )
     content = (response.choices[0].message.content or "").strip()
     if not content:
-        raise ServiceError("Vision-модель вернула пустой результат.")
+        raise SkillError("Vision-модель вернула пустой результат.")
     return content
