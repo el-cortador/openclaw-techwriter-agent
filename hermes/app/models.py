@@ -15,6 +15,7 @@ RouteKind = Literal[
     "review",
     "save_styleguide",
     "spec_file",
+    "spec_merge_request",
     "spec_text",
     "unknown_short",
     "unsupported_media",

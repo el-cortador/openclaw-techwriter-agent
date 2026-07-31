@@ -7,7 +7,7 @@ Runtime-упаковка techwriter-super-agent: skill-пакеты, устан�
 
 ```text
 skills/                 Skill-пакеты (SKILL.md + instructions*.md + references/)
-  spec2doc/             Черновик инструкции из постановки (текст, PDF, DOCX)
+  spec2doc/             Черновик инструкции из постановки (текст, PDF, DOCX) или merge request GitLab
   api-docs/             Документация по API (OpenAPI или текст)
   doc-reviewer/         Редакторское ревью (+ стайлгайд)
   release-notes/        Release notes / changelog из GitHub и Jira
@@ -44,8 +44,9 @@ runtimes/hermes/install.sh
 | `DISCORD_BOT_TOKEN` | Токен Discord-бота (нужен Message Content Intent) |
 | `OPENROUTER_API_KEY` | Ключ OpenRouter для LLM и vision |
 
-Опциональные: `GITHUB_TOKEN` (приватные репозитории), `JIRA_EMAIL` + `JIRA_API_TOKEN`
-(Jira-маршруты), `FIGMA_TOKEN` (приватные Figma-файлы). Полный список — в `.env.example`.
+Опциональные: `GITHUB_TOKEN` (приватные репозитории), `GITLAB_TOKEN` (merge request'ы,
+для приватных проектов обязателен), `JIRA_EMAIL` + `JIRA_API_TOKEN` (Jira-маршруты),
+`FIGMA_TOKEN` (приватные Figma-файлы). Полный список — в `.env.example`.
 
 ## Запуск
 

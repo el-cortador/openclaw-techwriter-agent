@@ -2,9 +2,9 @@ id: techwriter-super-agent
 name: Techwriter Super Agent
 description: >
   Self-hosted Discord-ассистент технического писателя: черновики инструкций
-  из постановок, документация по API, редакторское ревью, release notes и
-  changelog из GitHub/Jira, руководства по интерфейсам из Figma и скриншотов.
-  Включает Postgres-телеметрию и дашборд аналитики.
+  из постановок и merge request'ов GitLab, документация по API, редакторское
+  ревью, release notes и changelog из GitHub/Jira, руководства по интерфейсам
+  из Figma и скриншотов. Включает Postgres-телеметрию и дашборд аналитики.
 owner: personal
 
 runtimes:
@@ -30,6 +30,7 @@ integrations:
     - postgres
   optional:
     - github
+    - gitlab
     - jira
     - figma
 
@@ -40,6 +41,7 @@ secrets:
     - POSTGRES_PASSWORD
   optional:
     - GITHUB_TOKEN
+    - GITLAB_TOKEN
     - JIRA_EMAIL
     - JIRA_API_TOKEN
     - FIGMA_TOKEN

@@ -20,6 +20,15 @@
 - Причина: приватный репозиторий без `GITHUB_TOKEN` или невалидный токен.
   Исправление: задать `GITHUB_TOKEN` (scope `repo`); для публичных репозиториев токен не нужен.
 
+## GitLab: «вернул 401/403» или «Merge request не найден»
+
+- Причина: приватный проект без `GITLAB_TOKEN` или токен без scope `read_api`.
+  Исправление: выпустить Personal/Project Access Token со scope `read_api` и задать `GITLAB_TOKEN`.
+- Причина: self-hosted GitLab недоступен из контейнера (VPN, внутренний DNS).
+  Исправление: проверить `docker compose exec hermes-discord python -c "import requests; print(requests.get('<base>/api/v4/version').status_code)"`.
+- Причина: ссылка ведет на GitHub pull request — этот источник не поддерживается,
+  запрос уйдет в другой маршрут.
+
 ## Jira: «вернул 401/403/404»
 
 - Причина: неверные `JIRA_EMAIL` / `JIRA_API_TOKEN` или нет доступа к задаче.

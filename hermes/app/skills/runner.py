@@ -33,7 +33,7 @@ class Skill(Protocol):
 
 class Spec2DocSkill:
     name = "spec2doc"
-    route_kinds = frozenset({"spec_text", "spec_file"})
+    route_kinds = frozenset({"spec_text", "spec_file", "spec_merge_request"})
 
     async def run(self, context: SkillContext) -> str:
         route = context.route
@@ -44,6 +44,12 @@ class Spec2DocSkill:
             return await asyncio.to_thread(spec2doc.generate_draft, text)
         if route.kind == "spec_file" and route.attachment:
             return await asyncio.to_thread(spec2doc.generate_draft_from_file, route.attachment.path)
+        if route.kind == "spec_merge_request" and route.urls:
+            return await asyncio.to_thread(
+                spec2doc.generate_draft_from_merge_request,
+                route.urls[0],
+                _strip_urls(context.message.content, route.urls),
+            )
         raise SkillError("Маршрут spec2doc не содержит входных данных.")
 
 
@@ -89,7 +95,7 @@ class ReleaseNotesSkill:
                 release_notes.generate_jira,
                 urls=route.urls or [],
                 output_type=route.output_type,
-                release_notes_text=_release_notes_context(context.message.content, route.urls or []),
+                release_notes_text=_strip_urls(context.message.content, route.urls or []),
             )
         if route.kind == "release_request":
             if route.output_type == "changelog":
@@ -179,7 +185,7 @@ def _normalize_date(value: str) -> str:
     return value.replace(".", "-")
 
 
-def _release_notes_context(text: str, urls: list[str]) -> str:
+def _strip_urls(text: str, urls: list[str]) -> str:
     cleaned = text
     for url in urls:
         cleaned = cleaned.replace(url, "")

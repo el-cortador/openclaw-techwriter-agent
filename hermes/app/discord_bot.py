@@ -251,6 +251,8 @@ def _result_filename(route, incoming: IncomingMessage) -> str:
 def _route_filename_part(route) -> str:
     if route.kind in {"spec_text", "spec_file"}:
         return "spec"
+    if route.kind == "spec_merge_request":
+        return "merge-request"
     if route.kind in {"api_docs_text", "api_docs_file"}:
         return "api-docs"
     if route.kind == "figma_link":

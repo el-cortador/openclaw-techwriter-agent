@@ -13,6 +13,7 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 JIRA_RE = re.compile(r"https?://[^\s<>()]+/browse/[A-Z][A-Z0-9]+-\d+", re.IGNORECASE)
 URL_RE = re.compile(r"https?://[^\s<>()]+", re.IGNORECASE)
 GITHUB_RE = re.compile(r"(?:https?://)?github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", re.IGNORECASE)
+GITLAB_MR_RE = re.compile(r"https?://[^\s<>()]+?/(?:-/)?merge_requests/\d+", re.IGNORECASE)
 DATE_RE = re.compile(r"\b(?:\d{2}[.-]\d{2}[.-]\d{4}|\d{4}-\d{2}-\d{2})\b")
 
 
@@ -32,6 +33,10 @@ def classify(message: IncomingMessage) -> Route:
         file_route = _classify_attachment(attachment, lower)
         if file_route:
             return file_route
+
+    merge_request_urls = GITLAB_MR_RE.findall(text)
+    if merge_request_urls:
+        return Route("spec_merge_request", urls=merge_request_urls)
 
     jira_urls = JIRA_RE.findall(text)
     if jira_urls:
