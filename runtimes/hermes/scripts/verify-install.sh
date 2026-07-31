@@ -19,7 +19,7 @@ if [ -f "$REPO_ROOT/.env" ]; then
   for key in DISCORD_BOT_TOKEN OPENROUTER_API_KEY; do
     if grep -qE "^${key}=.+" "$REPO_ROOT/.env"; then report OK "$key задан"; else report FAIL "$key не задан в .env"; fi
   done
-  for key in GITHUB_TOKEN JIRA_API_TOKEN FIGMA_TOKEN; do
+  for key in GITHUB_TOKEN GITLAB_TOKEN JIRA_API_TOKEN FIGMA_TOKEN; do
     if grep -qE "^${key}=.+" "$REPO_ROOT/.env"; then report OK "$key задан (опционально)"; else report WARN "$key не задан — связанные сценарии будут недоступны"; fi
   done
 else

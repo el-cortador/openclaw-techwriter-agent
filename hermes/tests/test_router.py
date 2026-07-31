@@ -25,6 +25,19 @@ class RouterTest(unittest.TestCase):
         self.assertEqual(route.kind, "github_release")
         self.assertEqual(route.output_type, "changelog")
 
+    def test_gitlab_merge_request_routes_to_spec2doc(self) -> None:
+        route = classify(message("Опиши изменения https://gitlab.com/acme/app/-/merge_requests/42"))
+        self.assertEqual(route.kind, "spec_merge_request")
+        self.assertEqual(route.urls, ["https://gitlab.com/acme/app/-/merge_requests/42"])
+
+    def test_self_hosted_gitlab_merge_request_route(self) -> None:
+        route = classify(message("https://git.example.com/group/sub/app/merge_requests/7"))
+        self.assertEqual(route.kind, "spec_merge_request")
+
+    def test_github_pull_request_is_not_a_gitlab_merge_request(self) -> None:
+        route = classify(message("Посмотри https://github.com/acme/app/pull/42"))
+        self.assertNotEqual(route.kind, "spec_merge_request")
+
     def test_openapi_file_route(self) -> None:
         route = classify(message("Describe API", "openapi.yaml"))
         self.assertEqual(route.kind, "api_docs_file")

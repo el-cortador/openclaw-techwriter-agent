@@ -32,6 +32,9 @@ class SkillPackageTest(unittest.TestCase):
         for filename in ("instructions-release_notes.md", "instructions-changelog.md", "instructions-mapping.md"):
             self.assertTrue(load_instructions("release-notes", filename), filename)
 
+    def test_spec2doc_merge_request_instructions_exist(self) -> None:
+        self.assertTrue(load_instructions("spec2doc", "instructions-merge_request.md"))
+
     def test_screenshot_instructions_exist(self) -> None:
         self.assertTrue(load_instructions("figma-guide", "instructions-screenshot.md"))
 

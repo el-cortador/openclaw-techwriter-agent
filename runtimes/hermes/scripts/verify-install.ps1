@@ -25,7 +25,7 @@ if (Test-Path $EnvFile) {
     if ($envContent -match "(?m)^$key=\S+") { Report 'OK' "$key задан" }
     else { Report 'FAIL' "$key не задан в .env" }
   }
-  foreach ($key in 'GITHUB_TOKEN', 'JIRA_API_TOKEN', 'FIGMA_TOKEN') {
+  foreach ($key in 'GITHUB_TOKEN', 'GITLAB_TOKEN', 'JIRA_API_TOKEN', 'FIGMA_TOKEN') {
     if ($envContent -match "(?m)^$key=\S+") { Report 'OK' "$key задан (опционально)" }
     else { Report 'WARN' "$key не задан — связанные сценарии будут недоступны" }
   }

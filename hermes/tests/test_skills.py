@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from app.models import IncomingAttachment, IncomingMessage, Route
-from app.skills import api_docs, figma, release_notes
+from app.skills import api_docs, figma, release_notes, spec2doc
 from app.skills.runner import run_route
 
 
@@ -58,6 +58,22 @@ paths:
 
         self.assertEqual(result, "# Draft")
         generate.assert_called_once_with("описание функции")
+
+    async def test_merge_request_route_passes_url_and_comment(self) -> None:
+        route = Route("spec_merge_request", urls=["https://gitlab.com/acme/app/-/merge_requests/42"])
+        message = IncomingMessage(
+            content="Нужна инструкция https://gitlab.com/acme/app/-/merge_requests/42 для саппорта",
+            attachments=[],
+        )
+
+        with patch("app.skills.spec2doc.generate_draft_from_merge_request", return_value="# MR") as generate:
+            result = await run_route(route, message)
+
+        self.assertEqual(result, "# MR")
+        generate.assert_called_once_with(
+            "https://gitlab.com/acme/app/-/merge_requests/42",
+            "Нужна инструкция  для саппорта",
+        )
 
     async def test_review_route_passes_saved_styleguide(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -240,6 +256,65 @@ paths:
         self.assertIn("wireflow", prompt)
         self.assertIn("пользовательский путь", prompt)
 
+    def test_merge_request_url_parser_handles_subgroups_and_legacy_path(self) -> None:
+        self.assertEqual(
+            spec2doc.parse_merge_request_url("https://gitlab.com/acme/group/app/-/merge_requests/42"),
+            ("https://gitlab.com", "acme/group/app", 42),
+        )
+        self.assertEqual(
+            spec2doc.parse_merge_request_url("https://git.example.com/acme/app/merge_requests/7"),
+            ("https://git.example.com", "acme/app", 7),
+        )
+
+    def test_merge_request_url_parser_rejects_foreign_links(self) -> None:
+        with self.assertRaises(spec2doc.GitLabError):
+            spec2doc.parse_merge_request_url("https://github.com/acme/app/pull/42")
+
+    def test_merge_request_diffs_are_truncated_deterministically(self) -> None:
+        changes = [
+            {"new_path": "src/a.py", "diff": "+" * (spec2doc.MAX_FILE_DIFF_CHARS + 100)},
+            {"new_path": "src/b.py", "old_path": "src/old.py", "renamed_file": True, "diff": "+b"},
+            {"new_path": "src/c.py", "deleted_file": True, "diff": ""},
+        ]
+
+        files, truncated = spec2doc._collect_diffs(changes)
+
+        self.assertTrue(truncated)
+        self.assertEqual([item["path"] for item in files], ["src/a.py", "src/b.py", "src/c.py"])
+        self.assertEqual(
+            [item["status"] for item in files],
+            ["изменен", "переименован из src/old.py", "удален"],
+        )
+        self.assertTrue(files[0]["diff"].endswith("(дифф файла усечен)"))
+        self.assertLessEqual(sum(len(item["diff"]) for item in files), spec2doc.MAX_TOTAL_DIFF_CHARS)
+
+    def test_merge_request_prompt_contains_metadata_and_diffs(self) -> None:
+        prompt = spec2doc.build_merge_request_prompt(
+            {
+                "project": "acme/app",
+                "iid": 42,
+                "web_url": "https://gitlab.com/acme/app/-/merge_requests/42",
+                "title": "Add export button",
+                "description": "Кнопка экспорта в CSV",
+                "state": "opened",
+                "author": "Ivan",
+                "source_branch": "feature/export",
+                "target_branch": "main",
+                "labels": ["frontend"],
+                "commits": [{"short_id": "abc1234", "title": "Add export button"}],
+                "files": [{"path": "src/export.ts", "status": "добавлен", "diff": "+export const run = () => {}"}],
+                "diff_truncated": False,
+            }
+        )
+
+        self.assertIn("Merge request: !42 Add export button", prompt)
+        self.assertIn("Проект: acme/app", prompt)
+        self.assertIn("feature/export -> main", prompt)
+        self.assertIn("Кнопка экспорта в CSV", prompt)
+        self.assertIn("- [abc1234] Add export button", prompt)
+        self.assertIn("--- src/export.ts ---", prompt)
+        self.assertNotIn("усечен", prompt)
+
     def test_jira_url_parser_groups_by_base_url(self) -> None:
         grouped = release_notes._parse_jira_urls(
             [
@@ -249,6 +324,64 @@ paths:
         )
 
         self.assertEqual(grouped, {"https://example.atlassian.net": ["ABC-123", "ABC-456"]})
+
+
+class _FakeResponse:
+    def __init__(self, status_code: int, payload: object = None) -> None:
+        self.status_code = status_code
+        self._payload = payload
+
+    def json(self) -> object:
+        return self._payload
+
+
+class GitLabMergeRequestTest(unittest.TestCase):
+    def _fake_get(self, responses: dict[str, _FakeResponse]):
+        def get(url, headers=None, params=None, timeout=None):  # noqa: ANN001
+            for suffix, response in responses.items():
+                if url.endswith(suffix):
+                    return response
+            raise AssertionError(f"Unexpected GitLab call: {url}")
+
+        return get
+
+    def test_fetch_uses_changes_endpoint_when_diffs_is_missing(self) -> None:
+        responses = {
+            "/merge_requests/42": _FakeResponse(
+                200,
+                {
+                    "title": "Add export",
+                    "description": "Описание",
+                    "state": "opened",
+                    "author": {"name": "Ivan"},
+                    "source_branch": "feature/export",
+                    "target_branch": "main",
+                    "labels": ["frontend"],
+                    "web_url": "https://gitlab.com/acme/app/-/merge_requests/42",
+                },
+            ),
+            "/merge_requests/42/commits": _FakeResponse(200, [{"short_id": "abc1234", "title": "Add export"}]),
+            "/merge_requests/42/diffs": _FakeResponse(404),
+            "/merge_requests/42/changes": _FakeResponse(
+                200, {"changes": [{"new_path": "src/export.ts", "new_file": True, "diff": "+code"}]}
+            ),
+        }
+
+        with patch("app.skills.spec2doc.requests.get", side_effect=self._fake_get(responses)):
+            merge_request = spec2doc.fetch_merge_request("https://gitlab.com/acme/app/-/merge_requests/42")
+
+        self.assertEqual(merge_request["project"], "acme/app")
+        self.assertEqual(merge_request["iid"], 42)
+        self.assertEqual(merge_request["files"], [{"path": "src/export.ts", "status": "добавлен", "diff": "+code"}])
+        self.assertEqual(merge_request["commits"], [{"short_id": "abc1234", "title": "Add export"}])
+        self.assertFalse(merge_request["diff_truncated"])
+
+    def test_fetch_reports_missing_access_without_calling_llm(self) -> None:
+        responses = {"/merge_requests/42": _FakeResponse(401)}
+
+        with patch("app.skills.spec2doc.requests.get", side_effect=self._fake_get(responses)):
+            with self.assertRaisesRegex(spec2doc.GitLabError, "GITLAB_TOKEN"):
+                spec2doc.fetch_merge_request("https://gitlab.com/acme/app/-/merge_requests/42")
 
 
 if __name__ == "__main__":

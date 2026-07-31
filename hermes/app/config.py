@@ -32,6 +32,7 @@ LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.2"))
 HERMES_VISION_MODEL: str = os.getenv("HERMES_VISION_MODEL", "google/gemini-2.5-flash")
 
 GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
+GITLAB_TOKEN: str = os.getenv("GITLAB_TOKEN", "")
 JIRA_EMAIL: str = os.getenv("JIRA_EMAIL", "")
 JIRA_API_TOKEN: str = os.getenv("JIRA_API_TOKEN", "")
 FIGMA_TOKEN: str = os.getenv("FIGMA_TOKEN", "")
