@@ -6,7 +6,7 @@ import unicodedata
 from app.models import IncomingAttachment, IncomingMessage, Route
 
 API_EXTENSIONS = {".yaml", ".yml", ".json"}
-SPEC_EXTENSIONS = {".pdf", ".docx"}
+SPEC_EXTENSIONS = {".pdf", ".doc", ".docx", ".md", ".markdown", ".txt"}
 MEDIA_EXTENSIONS = {".mp3", ".mp4", ".wav", ".m4a", ".ogg", ".webm"}
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 
@@ -58,6 +58,8 @@ def classify(message: IncomingMessage) -> Route:
         return Route("release_request", output_type=_output_type(lower))
 
     if _looks_like_review(lower):
+        if urls:
+            return Route("review_url", urls=urls)
         return Route("review")
 
     if _looks_like_api(lower):
@@ -77,9 +79,9 @@ def _classify_attachment(attachment: IncomingAttachment, lower: str) -> Route | 
     if suffix in MEDIA_EXTENSIONS or content_type.startswith(("audio/", "video/")):
         return Route("unsupported_media", attachment=attachment)
     if suffix in SPEC_EXTENSIONS:
+        if _looks_like_review(lower):
+            return Route("review_file", attachment=attachment)
         return Route("spec_file", attachment=attachment)
-    if suffix == ".md" and "стайлгайд" in lower:
-        return Route("save_styleguide", attachment=attachment)
     if suffix in IMAGE_EXTENSIONS or content_type.startswith("image/"):
         return Route("figma_link", attachment=attachment)
     return None

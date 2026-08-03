@@ -261,7 +261,7 @@ def _route_filename_part(route) -> str:
         return "changelog" if route.output_type == "changelog" else "release-notes"
     if route.kind == "release_request":
         return "changelog-request" if route.output_type == "changelog" else "release-notes-request"
-    if route.kind == "review":
+    if route.kind in {"review", "review_file", "review_url"}:
         return "review"
     if route.kind == "save_styleguide":
         return "styleguide"

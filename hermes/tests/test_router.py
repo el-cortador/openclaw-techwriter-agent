@@ -70,6 +70,28 @@ class RouterTest(unittest.TestCase):
         route = classify(message("review this text by styleguide"))
         self.assertEqual(route.kind, "review")
 
+    def test_review_url_route(self) -> None:
+        route = classify(message("Проверь https://docs.example.com/guide/install"))
+        self.assertEqual(route.kind, "review_url")
+        self.assertEqual(route.urls, ["https://docs.example.com/guide/install"])
+
+    def test_review_file_route(self) -> None:
+        route = classify(message("Проверь этот документ", "guide.md"))
+        self.assertEqual(route.kind, "review_file")
+        self.assertIsNotNone(route.attachment)
+
+    def test_markdown_file_routes_to_spec2doc(self) -> None:
+        route = classify(message("Нужна инструкция", "postanovka.md"))
+        self.assertEqual(route.kind, "spec_file")
+
+    def test_legacy_doc_file_routes_to_spec2doc(self) -> None:
+        route = classify(message("", "postanovka.doc"))
+        self.assertEqual(route.kind, "spec_file")
+
+    def test_styleguide_markdown_file_still_saves_styleguide(self) -> None:
+        route = classify(message("это стайлгайд", "rules.md"))
+        self.assertEqual(route.kind, "save_styleguide")
+
     def test_api_token_alone_does_not_route_to_api_docs(self) -> None:
         route = classify(message("MCP server setup\nX-API-Token: string\nhost: localhost:8080"))
         self.assertEqual(route.kind, "spec_text")

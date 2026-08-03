@@ -13,6 +13,8 @@ RouteKind = Literal[
     "jira_release",
     "release_request",
     "review",
+    "review_file",
+    "review_url",
     "save_styleguide",
     "spec_file",
     "spec_merge_request",

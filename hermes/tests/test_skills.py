@@ -5,8 +5,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import struct
+
 from app.models import IncomingAttachment, IncomingMessage, Route
-from app.skills import api_docs, figma, release_notes, spec2doc
+from app.skills import api_docs, documents, figma, release_notes, spec2doc, webdocs
 from app.skills.runner import run_route
 
 
@@ -74,6 +76,58 @@ paths:
             "https://gitlab.com/acme/app/-/merge_requests/42",
             "Нужна инструкция  для саппорта",
         )
+
+    async def test_spec_file_route_reads_markdown(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "postanovka.md"
+            path.write_text("# Постановка\n\nНужен экспорт в CSV.\n", encoding="utf-8")
+            message = IncomingMessage(
+                content="",
+                attachments=[IncomingAttachment(filename=path.name, content_type=None, path=path)],
+            )
+            with patch("app.skills.spec2doc.generate_draft", return_value="# Draft") as generate:
+                result = await run_route(Route("spec_file", attachment=message.attachments[0]), message)
+
+        self.assertEqual(result, "# Draft")
+        self.assertIn("Нужен экспорт в CSV.", generate.call_args.args[0])
+
+    async def test_review_file_route_reads_markdown_with_styleguide(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "guide.md"
+            path.write_text("# Инструкция\n\nНажмите кнопку.\n", encoding="utf-8")
+            styleguide = Path(tmp) / "styleguide.md"
+            styleguide.write_text("Пиши кратко", encoding="utf-8")
+            message = IncomingMessage(
+                content="Проверь документ",
+                attachments=[IncomingAttachment(filename=path.name, content_type=None, path=path)],
+            )
+            with patch("app.config.STYLEGUIDE_PATH", styleguide):
+                with patch("app.skills.reviewer.generate_text", return_value="замечания") as generate:
+                    result = await run_route(
+                        Route("review_file", attachment=message.attachments[0]), message
+                    )
+
+        self.assertEqual(result, "замечания")
+        user_message = generate.call_args.args[0][1]["content"]
+        self.assertIn("Пиши кратко", user_message)
+        self.assertIn("файл guide.md", user_message)
+        self.assertIn("Нажмите кнопку.", user_message)
+
+    async def test_review_url_route_reviews_parsed_site_text(self) -> None:
+        route = Route("review_url", urls=["https://docs.example.com/guide"])
+        message = IncomingMessage(content="Проверь https://docs.example.com/guide", attachments=[])
+
+        with patch(
+            "app.skills.reviewer.fetch_documentation_text", return_value="Текст со страницы"
+        ) as fetch:
+            with patch("app.skills.reviewer.generate_text", return_value="замечания") as generate:
+                result = await run_route(route, message)
+
+        self.assertEqual(result, "замечания")
+        fetch.assert_called_once_with("https://docs.example.com/guide")
+        user_message = generate.call_args.args[0][1]["content"]
+        self.assertIn("Источник текста: https://docs.example.com/guide", user_message)
+        self.assertIn("Текст со страницы", user_message)
 
     async def test_review_route_passes_saved_styleguide(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -326,10 +380,161 @@ paths:
         self.assertEqual(grouped, {"https://example.atlassian.net": ["ABC-123", "ABC-456"]})
 
 
+class DocumentExtractionTest(unittest.TestCase):
+    def test_markdown_file_is_read_as_text(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "spec.md"
+            path.write_text("# Заголовок\r\n\r\n\r\n\r\nТело постановки\r\n", encoding="utf-8-sig")
+
+            text = documents.read_document(path)
+
+        self.assertEqual(text, "# Заголовок\n\nТело постановки")
+
+    def test_cp1251_text_file_is_read(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "spec.txt"
+            path.write_bytes("Постановка".encode("cp1251"))
+
+            self.assertEqual(documents.read_document(path), "Постановка")
+
+    def test_empty_markdown_file_fails_without_llm(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "empty.md"
+            path.write_text("   \n\n", encoding="utf-8")
+
+            with self.assertRaises(documents.ParserError):
+                documents.read_document(path)
+
+    def test_unsupported_extension_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "spec.rtfx"
+            path.write_text("text", encoding="utf-8")
+
+            with self.assertRaisesRegex(documents.ParserError, "Неподдерживаемый формат"):
+                documents.read_document(path)
+
+    def test_doc_piece_table_is_parsed(self) -> None:
+        plc = struct.pack("<II", 0, 6) + struct.pack("<HIH", 0, 0x40000000 | (100 * 2), 0)
+        clx = b"\x01" + struct.pack("<H", 2) + b"\x00\x00" + b"\x02" + struct.pack("<I", len(plc)) + plc
+
+        pieces = documents._parse_piece_table(clx)
+
+        self.assertEqual(pieces, [(100, 6, True)])
+
+    def test_doc_compressed_piece_decodes_cyrillic(self) -> None:
+        document = b"\x00" * 100 + "Привет".encode("cp1251")
+
+        self.assertEqual(documents._read_doc_piece(document, 100, 6, True), "Привет")
+
+    def test_doc_uncompressed_piece_decodes_utf16(self) -> None:
+        document = b"\x00" * 10 + "Привет".encode("utf-16-le")
+
+        self.assertEqual(documents._read_doc_piece(document, 10, 6, False), "Привет")
+
+    def test_doc_control_characters_are_normalized(self) -> None:
+        self.assertEqual(
+            documents._clean_doc_text("Шаг 1\rШаг 2\x07\x13ссылка\x15\r\r\r\rКонец"),
+            "Шаг 1\nШаг 2\nссылка\n\nКонец",
+        )
+
+    def test_doc_with_zip_signature_falls_back_to_docx(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "renamed.doc"
+            path.write_bytes(b"PK\x03\x04" + b"\x00" * 10)
+
+            with patch("app.skills.documents._extract_docx", return_value="текст") as extract:
+                self.assertEqual(documents.extract_text(path), "текст")
+
+        extract.assert_called_once()
+
+    def test_doc_without_ole_signature_reports_clear_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "broken.doc"
+            path.write_bytes(b"not a word document")
+
+            with self.assertRaisesRegex(documents.ParserError, "DOCX"):
+                documents.extract_text(path)
+
+
+class WebDocsTest(unittest.TestCase):
+    HTML = """
+    <html>
+      <head><title>Установка</title><style>.a{color:red}</style></head>
+      <body>
+        <nav>Главная Документация Блог</nav>
+        <main>
+          <h1>Установка агента</h1>
+          <p>Запустите <code>docker compose up</code>.</p>
+          <ul><li>Шаг 1</li><li>Шаг 2</li></ul>
+          <div aria-hidden="true">Скрытый блок</div>
+        </main>
+        <script>console.log("hi")</script>
+        <footer>© 2026</footer>
+      </body>
+    </html>
+    """
+
+    def test_html_to_text_keeps_main_content_only(self) -> None:
+        text = webdocs.html_to_text(self.HTML)
+
+        self.assertIn("Установка агента", text)
+        self.assertIn("Запустите docker compose up.", text)
+        self.assertIn("Шаг 1", text)
+        self.assertIn("Шаг 2", text)
+        self.assertNotIn("Главная", text)
+        self.assertNotIn("console.log", text)
+        self.assertNotIn("© 2026", text)
+        self.assertNotIn("Скрытый блок", text)
+
+    def test_html_to_text_falls_back_to_body_without_main(self) -> None:
+        text = webdocs.html_to_text("<html><body><h1>Заголовок</h1><p>Абзац</p></body></html>")
+
+        self.assertEqual(text, "Заголовок\n\nАбзац")
+
+    def test_fetch_documentation_text_parses_html_page(self) -> None:
+        response = _FakeResponse(200, content=self.HTML.encode("utf-8"), headers={"Content-Type": "text/html; charset=utf-8"})
+
+        with patch("app.skills.webdocs.requests.get", return_value=response):
+            text = webdocs.fetch_documentation_text("https://docs.example.com/install")
+
+        self.assertIn("Установка агента", text)
+
+    def test_fetch_documentation_text_reports_http_error(self) -> None:
+        response = _FakeResponse(403, content=b"", headers={})
+
+        with patch("app.skills.webdocs.requests.get", return_value=response):
+            with self.assertRaisesRegex(webdocs.WebDocsError, "401/403"):
+                webdocs.fetch_documentation_text("https://docs.example.com/install")
+
+    def test_fetch_documentation_text_rejects_non_http_url(self) -> None:
+        with self.assertRaises(webdocs.WebDocsError):
+            webdocs.fetch_documentation_text("ftp://docs.example.com/install")
+
+    def test_fetch_documentation_text_reports_empty_page(self) -> None:
+        response = _FakeResponse(
+            200,
+            content=b"<html><body><script>render()</script></body></html>",
+            headers={"Content-Type": "text/html"},
+        )
+
+        with patch("app.skills.webdocs.requests.get", return_value=response):
+            with self.assertRaisesRegex(webdocs.WebDocsError, "не найден текст"):
+                webdocs.fetch_documentation_text("https://docs.example.com/spa")
+
+
 class _FakeResponse:
-    def __init__(self, status_code: int, payload: object = None) -> None:
+    def __init__(
+        self,
+        status_code: int,
+        payload: object = None,
+        content: bytes = b"",
+        headers: dict[str, str] | None = None,
+    ) -> None:
         self.status_code = status_code
         self._payload = payload
+        self.content = content
+        self.headers = headers or {}
+        self.encoding = "utf-8"
 
     def json(self) -> object:
         return self._payload
