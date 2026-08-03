@@ -7,9 +7,9 @@ Runtime-упаковка techwriter-super-agent: skill-пакеты, устан�
 
 ```text
 skills/                 Skill-пакеты (SKILL.md + instructions*.md + references/)
-  spec2doc/             Черновик инструкции из постановки (текст, PDF, DOCX) или merge request GitLab
+  spec2doc/             Черновик инструкции из постановки (текст, PDF, DOC, DOCX, MD) или merge request GitLab
   api-docs/             Документация по API (OpenAPI или текст)
-  doc-reviewer/         Редакторское ревью (+ стайлгайд)
+  doc-reviewer/         Редакторское ревью текста, файла или страницы документации (+ стайлгайд)
   release-notes/        Release notes / changelog из GitHub и Jira
   figma-guide/          Руководство по интерфейсу (Figma URL или скриншот)
 install.ps1             Установка на Windows (идемпотентная, не перезаписывает .env)
