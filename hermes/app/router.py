@@ -23,9 +23,6 @@ def classify(message: IncomingMessage) -> Route:
     attachment = message.attachments[0] if message.attachments else None
     short_text = _short_text(lower)
 
-    if _is_styleguide_save(lower) or (attachment and _is_styleguide_attachment(attachment, lower)):
-        return Route("save_styleguide", attachment=attachment)
-
     if not attachment and _is_short_ping(short_text):
         return Route("unknown_short")
 
@@ -57,11 +54,6 @@ def classify(message: IncomingMessage) -> Route:
     if _looks_like_release_request(lower):
         return Route("release_request", output_type=_output_type(lower))
 
-    if _looks_like_review(lower):
-        if urls:
-            return Route("review_url", urls=urls)
-        return Route("review")
-
     if _looks_like_api(lower):
         return Route("api_docs_text")
 
@@ -72,40 +64,15 @@ def _classify_attachment(attachment: IncomingAttachment, lower: str) -> Route | 
     suffix = attachment.suffix
     content_type = (attachment.content_type or "").lower()
 
-    if _is_styleguide_attachment(attachment, lower):
-        return Route("save_styleguide", attachment=attachment)
     if suffix in API_EXTENSIONS:
         return Route("api_docs_file", attachment=attachment)
     if suffix in MEDIA_EXTENSIONS or content_type.startswith(("audio/", "video/")):
         return Route("unsupported_media", attachment=attachment)
     if suffix in SPEC_EXTENSIONS:
-        if _looks_like_review(lower):
-            return Route("review_file", attachment=attachment)
         return Route("spec_file", attachment=attachment)
     if suffix in IMAGE_EXTENSIONS or content_type.startswith("image/"):
         return Route("figma_link", attachment=attachment)
     return None
-
-
-def _is_styleguide_save(lower: str) -> bool:
-    return (
-        "это стайлгайд" in lower
-        or "стайлгайд:" in lower
-        or "styleguide:" in lower
-        or "this is a style guide" in lower
-    )
-
-
-def _is_styleguide_attachment(attachment: IncomingAttachment, lower: str) -> bool:
-    filename = attachment.filename.lower()
-    return (
-        _is_styleguide_save(lower)
-        or "стайлгайд" in lower
-        or "стайлгайд" in filename
-        or "styleguide" in filename
-        or "style-guide" in filename
-        or "style guide" in filename
-    )
 
 
 def _looks_like_api(lower: str) -> bool:
@@ -125,10 +92,6 @@ def _looks_like_api(lower: str) -> bool:
     )
     http_methods = ("get /", "post /", "put /", "patch /", "delete /")
     return any(word in lower for word in api_words) or any(method in lower for method in http_methods)
-
-
-def _looks_like_review(lower: str) -> bool:
-    return any(word in lower for word in ("review", "ревью", "проверь", "проверка", "проверить"))
 
 
 def _looks_like_release_request(lower: str) -> bool:

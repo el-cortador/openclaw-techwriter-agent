@@ -39,7 +39,7 @@ else { Report 'FAIL' 'manifest.yaml не найден в корне репози
 
 # --- skill-пакеты ---
 $SkillsDir = Join-Path $RepoRoot 'runtimes\hermes\skills'
-foreach ($skill in 'spec2doc', 'api-docs', 'doc-reviewer', 'release-notes', 'figma-guide') {
+foreach ($skill in 'spec2doc', 'api-docs', 'release-notes', 'figma-guide') {
   $pkg = Join-Path $SkillsDir $skill
   $hasSkill = Test-Path (Join-Path $pkg 'SKILL.md')
   $hasInstructions = @(Get-ChildItem (Join-Path $pkg 'instructions*.md') -ErrorAction SilentlyContinue).Count -gt 0

@@ -20,20 +20,16 @@
 
 | Маршрут | Триггер | Skill |
 |---|---|---|
-| `save_styleguide` | «это стайлгайд», «стайлгайд:», «styleguide:» или файл со «стайлгайд/styleguide» в имени | runtime |
 | `unknown_short` | короткое сообщение без вложений («привет», «ping», …) | runtime |
 | `api_docs_file` | вложение `.yaml` / `.yml` / `.json` | `api-docs` |
 | `api_docs_text` | слова openapi/swagger/endpoint/rest api/эндпоинт/… или HTTP-методы с путями | `api-docs` |
 | `unsupported_media` | аудио/видео вложение или ссылка на медиа | runtime |
-| `spec_file` | вложение `.pdf` / `.doc` / `.docx` / `.md` / `.markdown` / `.txt` без слов ревью | `spec2doc` |
+| `spec_file` | вложение `.pdf` / `.doc` / `.docx` / `.md` / `.markdown` / `.txt` | `spec2doc` |
 | `spec_merge_request` | URL вида `…/merge_requests/<N>` (GitLab, в т.ч. self-hosted) | `spec2doc` |
 | `figma_link` | URL `figma.com` или изображение-вложение | `figma-guide` |
 | `jira_release` | URL вида `…/browse/<KEY>-<N>` | `release-notes` |
 | `github_release` | GitHub-репозиторий + дата(ы) в сообщении | `release-notes` |
 | `release_request` | «release notes», «changelog», «релизноут», … без источника | `release-notes` (подсказка) |
-| `review` | «review», «ревью», «проверь», … в тексте сообщения | `doc-reviewer` |
-| `review_file` | те же слова + вложение `.pdf` / `.doc` / `.docx` / `.md` / `.markdown` / `.txt` | `doc-reviewer` |
-| `review_url` | те же слова + ссылка на страницу документации | `doc-reviewer` |
 | `spec_text` | всё остальное | `spec2doc` |
 
 `output_type` для release-маршрутов: `changelog`, если в тексте есть «changelog / change log /

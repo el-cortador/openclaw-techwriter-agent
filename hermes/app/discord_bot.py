@@ -16,7 +16,6 @@ from app import config, telemetry
 from app.models import IncomingAttachment, IncomingMessage
 from app.router import classify
 from app.skills.runner import SkillError, run_route
-from app.styleguide import extract_styleguide_text
 from app.telemetry_context import reset_current_run_id, set_current_run_id
 from app.vision import describe_ui_screenshot
 
@@ -68,15 +67,6 @@ async def _handle_route(route, incoming: IncomingMessage) -> str:
         answer = await asyncio.to_thread(describe_ui_screenshot, route.attachment, incoming.content)
         logger.info("route=%s answer_chars=%d", route.kind, len(answer), extra={"route_kind": route.kind})
         return answer
-    if route.kind == "save_styleguide":
-        text = incoming.content.strip()
-        if route.attachment:
-            text = extract_styleguide_text(route.attachment)
-        text = _strip_styleguide_prefix(text)
-        if not text:
-            raise SkillError("Стильгайд пустой.")
-        config.STYLEGUIDE_PATH.write_text(text, encoding="utf-8")
-        return "Стайлгайд сохранен. Буду применять его при следующих ревью."
     if route.kind == "unsupported_media":
         return "Транскрибация аудио и видео в Discord отключена из-за лимитов на размер вложений."
     answer = await run_route(route, incoming)
@@ -208,14 +198,6 @@ def _complete_telemetry_failure(state: _TelemetryState, error_message: str) -> N
     )
 
 
-def _strip_styleguide_prefix(text: str) -> str:
-    for marker in ("стайлгайд:", "styleguide:", "это стайлгайд"):
-        index = text.lower().find(marker)
-        if index >= 0:
-            return text[index + len(marker):].strip()
-    return text.strip()
-
-
 def _is_allowed(message: discord.Message) -> bool:
     if config.DISCORD_ALLOWED_USER_IDS and message.author.id not in config.DISCORD_ALLOWED_USER_IDS:
         return False
@@ -261,10 +243,6 @@ def _route_filename_part(route) -> str:
         return "changelog" if route.output_type == "changelog" else "release-notes"
     if route.kind == "release_request":
         return "changelog-request" if route.output_type == "changelog" else "release-notes-request"
-    if route.kind in {"review", "review_file", "review_url"}:
-        return "review"
-    if route.kind == "save_styleguide":
-        return "styleguide"
     return "result"
 
 

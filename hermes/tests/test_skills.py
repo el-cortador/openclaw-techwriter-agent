@@ -8,7 +8,7 @@ from unittest.mock import patch
 import struct
 
 from app.models import IncomingAttachment, IncomingMessage, Route
-from app.skills import api_docs, documents, figma, release_notes, spec2doc, webdocs
+from app.skills import api_docs, documents, figma, release_notes, spec2doc
 from app.skills.runner import run_route
 
 
@@ -90,55 +90,6 @@ paths:
 
         self.assertEqual(result, "# Draft")
         self.assertIn("Нужен экспорт в CSV.", generate.call_args.args[0])
-
-    async def test_review_file_route_reads_markdown_with_styleguide(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "guide.md"
-            path.write_text("# Инструкция\n\nНажмите кнопку.\n", encoding="utf-8")
-            styleguide = Path(tmp) / "styleguide.md"
-            styleguide.write_text("Пиши кратко", encoding="utf-8")
-            message = IncomingMessage(
-                content="Проверь документ",
-                attachments=[IncomingAttachment(filename=path.name, content_type=None, path=path)],
-            )
-            with patch("app.config.STYLEGUIDE_PATH", styleguide):
-                with patch("app.skills.reviewer.generate_text", return_value="замечания") as generate:
-                    result = await run_route(
-                        Route("review_file", attachment=message.attachments[0]), message
-                    )
-
-        self.assertEqual(result, "замечания")
-        user_message = generate.call_args.args[0][1]["content"]
-        self.assertIn("Пиши кратко", user_message)
-        self.assertIn("файл guide.md", user_message)
-        self.assertIn("Нажмите кнопку.", user_message)
-
-    async def test_review_url_route_reviews_parsed_site_text(self) -> None:
-        route = Route("review_url", urls=["https://docs.example.com/guide"])
-        message = IncomingMessage(content="Проверь https://docs.example.com/guide", attachments=[])
-
-        with patch(
-            "app.skills.reviewer.fetch_documentation_text", return_value="Текст со страницы"
-        ) as fetch:
-            with patch("app.skills.reviewer.generate_text", return_value="замечания") as generate:
-                result = await run_route(route, message)
-
-        self.assertEqual(result, "замечания")
-        fetch.assert_called_once_with("https://docs.example.com/guide")
-        user_message = generate.call_args.args[0][1]["content"]
-        self.assertIn("Источник текста: https://docs.example.com/guide", user_message)
-        self.assertIn("Текст со страницы", user_message)
-
-    async def test_review_route_passes_saved_styleguide(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            styleguide = Path(tmp) / "styleguide.md"
-            styleguide.write_text("Пиши кратко", encoding="utf-8")
-            with patch("app.config.STYLEGUIDE_PATH", styleguide):
-                with patch("app.skills.reviewer.review", return_value="ok") as review:
-                    result = await run_route(Route("review"), IncomingMessage(content="Проверь текст", attachments=[]))
-
-        self.assertEqual(result, "ok")
-        review.assert_called_once_with("Проверь текст", "Пиши кратко")
 
     async def test_github_release_builds_payload_from_route(self) -> None:
         route = Route(
@@ -454,72 +405,6 @@ class DocumentExtractionTest(unittest.TestCase):
 
             with self.assertRaisesRegex(documents.ParserError, "DOCX"):
                 documents.extract_text(path)
-
-
-class WebDocsTest(unittest.TestCase):
-    HTML = """
-    <html>
-      <head><title>Установка</title><style>.a{color:red}</style></head>
-      <body>
-        <nav>Главная Документация Блог</nav>
-        <main>
-          <h1>Установка агента</h1>
-          <p>Запустите <code>docker compose up</code>.</p>
-          <ul><li>Шаг 1</li><li>Шаг 2</li></ul>
-          <div aria-hidden="true">Скрытый блок</div>
-        </main>
-        <script>console.log("hi")</script>
-        <footer>© 2026</footer>
-      </body>
-    </html>
-    """
-
-    def test_html_to_text_keeps_main_content_only(self) -> None:
-        text = webdocs.html_to_text(self.HTML)
-
-        self.assertIn("Установка агента", text)
-        self.assertIn("Запустите docker compose up.", text)
-        self.assertIn("Шаг 1", text)
-        self.assertIn("Шаг 2", text)
-        self.assertNotIn("Главная", text)
-        self.assertNotIn("console.log", text)
-        self.assertNotIn("© 2026", text)
-        self.assertNotIn("Скрытый блок", text)
-
-    def test_html_to_text_falls_back_to_body_without_main(self) -> None:
-        text = webdocs.html_to_text("<html><body><h1>Заголовок</h1><p>Абзац</p></body></html>")
-
-        self.assertEqual(text, "Заголовок\n\nАбзац")
-
-    def test_fetch_documentation_text_parses_html_page(self) -> None:
-        response = _FakeResponse(200, content=self.HTML.encode("utf-8"), headers={"Content-Type": "text/html; charset=utf-8"})
-
-        with patch("app.skills.webdocs.requests.get", return_value=response):
-            text = webdocs.fetch_documentation_text("https://docs.example.com/install")
-
-        self.assertIn("Установка агента", text)
-
-    def test_fetch_documentation_text_reports_http_error(self) -> None:
-        response = _FakeResponse(403, content=b"", headers={})
-
-        with patch("app.skills.webdocs.requests.get", return_value=response):
-            with self.assertRaisesRegex(webdocs.WebDocsError, "401/403"):
-                webdocs.fetch_documentation_text("https://docs.example.com/install")
-
-    def test_fetch_documentation_text_rejects_non_http_url(self) -> None:
-        with self.assertRaises(webdocs.WebDocsError):
-            webdocs.fetch_documentation_text("ftp://docs.example.com/install")
-
-    def test_fetch_documentation_text_reports_empty_page(self) -> None:
-        response = _FakeResponse(
-            200,
-            content=b"<html><body><script>render()</script></body></html>",
-            headers={"Content-Type": "text/html"},
-        )
-
-        with patch("app.skills.webdocs.requests.get", return_value=response):
-            with self.assertRaisesRegex(webdocs.WebDocsError, "не найден текст"):
-                webdocs.fetch_documentation_text("https://docs.example.com/spa")
 
 
 class _FakeResponse:

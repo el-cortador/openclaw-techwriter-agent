@@ -9,7 +9,6 @@ Runtime-упаковка techwriter-super-agent: skill-пакеты, устан�
 skills/                 Skill-пакеты (SKILL.md + instructions*.md + references/)
   spec2doc/             Черновик инструкции из постановки (текст, PDF, DOC, DOCX, MD) или merge request GitLab
   api-docs/             Документация по API (OpenAPI или текст)
-  doc-reviewer/         Редакторское ревью текста, файла или страницы документации (+ стайлгайд)
   release-notes/        Release notes / changelog из GitHub и Jira
   figma-guide/          Руководство по интерфейсу (Figma URL или скриншот)
 install.ps1             Установка на Windows (идемпотентная, не перезаписывает .env)
@@ -69,5 +68,5 @@ runtimes\hermes\scripts\verify-install.ps1   # установка
 | Назначение | Локально | В контейнере |
 |---|---|---|
 | Skill-пакеты | `runtimes/hermes/skills/` | `/app/skills/` |
-| Состояние (стайлгайд) | `hermes/state/` | `/app/state/` (volume) |
+| Состояние рантайма | `hermes/state/` | `/app/state/` (volume) |
 | Код gateway | `hermes/app/` | `/app/app/` |
