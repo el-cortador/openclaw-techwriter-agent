@@ -15,7 +15,7 @@ class SkillPackageTest(unittest.TestCase):
     def test_manifest_required_skills_have_packages(self) -> None:
         manifest = yaml.safe_load((REPO_ROOT / "manifest.yaml").read_text(encoding="utf-8"))
         required = manifest["runtimes"]["hermes"]["skills"]["required"]
-        self.assertEqual(sorted(required), ["api-docs", "doc-reviewer", "figma-guide", "release-notes", "spec2doc"])
+        self.assertEqual(sorted(required), ["api-docs", "figma-guide", "release-notes", "spec2doc"])
         for skill in required:
             package = config.SKILLS_DIR / skill
             self.assertTrue((package / "SKILL.md").is_file(), f"SKILL.md missing for {skill}")
@@ -25,7 +25,7 @@ class SkillPackageTest(unittest.TestCase):
             )
 
     def test_load_instructions_returns_nonempty_text(self) -> None:
-        for skill in ("spec2doc", "api-docs", "doc-reviewer", "figma-guide"):
+        for skill in ("spec2doc", "api-docs", "figma-guide"):
             self.assertTrue(load_instructions(skill), skill)
 
     def test_release_notes_instruction_variants(self) -> None:

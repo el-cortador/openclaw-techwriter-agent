@@ -30,7 +30,7 @@ fi
 if [ -f "$REPO_ROOT/manifest.yaml" ]; then report OK "manifest.yaml найден"; else report FAIL "manifest.yaml не найден в корне репозитория"; fi
 
 # --- skill-пакеты ---
-for skill in spec2doc api-docs doc-reviewer release-notes figma-guide; do
+for skill in spec2doc api-docs release-notes figma-guide; do
   pkg="$REPO_ROOT/runtimes/hermes/skills/$skill"
   if [ -f "$pkg/SKILL.md" ] && compgen -G "$pkg/instructions*.md" >/dev/null; then
     report OK "skill $skill: пакет в порядке"

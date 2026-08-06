@@ -235,3 +235,6 @@ sessions/
 # Dashboard UI build artifacts
 dashboard-ui/node_modules/
 dashboard-ui/dist/
+
+# Рабочие заметки под будущие работы (вне репозитория)
+DOC_LINTER_SPEC.md

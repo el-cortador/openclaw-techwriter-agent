@@ -7,12 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from app import config
 from app.models import IncomingMessage, Route
-from app.skills import api_docs, figma, release_notes, reviewer, spec2doc
-
-
-REVIEW_ROUTE_KINDS = frozenset({"review", "review_file", "review_url"})
+from app.skills import api_docs, figma, release_notes, spec2doc
 
 
 class SkillError(Exception):
@@ -23,7 +19,6 @@ class SkillError(Exception):
 class SkillContext:
     route: Route
     message: IncomingMessage
-    styleguide: str | None = None
 
 
 class Skill(Protocol):
@@ -71,26 +66,6 @@ class ApiDocsSkill:
         if not text:
             raise SkillError("Описание API не может быть пустым")
         return await asyncio.to_thread(api_docs.generate_api_docs, text)
-
-
-class ReviewerSkill:
-    name = "reviewer"
-    route_kinds = frozenset({"review", "review_file", "review_url"})
-
-    async def run(self, context: SkillContext) -> str:
-        route = context.route
-        if route.kind == "review_file" and route.attachment:
-            return await asyncio.to_thread(
-                reviewer.review_document,
-                route.attachment.path,
-                context.styleguide,
-            )
-        if route.kind == "review_url" and route.urls:
-            return await asyncio.to_thread(reviewer.review_url, route.urls[0], context.styleguide)
-        text = context.message.content.strip()
-        if not text:
-            raise SkillError("Текст для ревью не может быть пустым")
-        return await asyncio.to_thread(reviewer.review, text, context.styleguide)
 
 
 class ReleaseNotesSkill:
@@ -142,7 +117,6 @@ class FigmaSkill:
 _SKILLS: tuple[Skill, ...] = (
     Spec2DocSkill(),
     ApiDocsSkill(),
-    ReviewerSkill(),
     ReleaseNotesSkill(),
     FigmaSkill(),
 )
@@ -154,16 +128,12 @@ SKILLS_BY_ROUTE: dict[str, Skill] = {
 
 
 async def run_route(route: Route, message: IncomingMessage) -> str:
-    styleguide = None
-    if route.kind in REVIEW_ROUTE_KINDS and config.STYLEGUIDE_PATH.exists():
-        styleguide = config.STYLEGUIDE_PATH.read_text(encoding="utf-8")
-
     skill = SKILLS_BY_ROUTE.get(route.kind)
     if not skill:
         raise SkillError("Маршрут пока не поддержан.")
 
     try:
-        result = await skill.run(SkillContext(route=route, message=message, styleguide=styleguide))
+        result = await skill.run(SkillContext(route=route, message=message))
     except SkillError:
         raise
     except Exception as exc:
