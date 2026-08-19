@@ -330,6 +330,28 @@ paths:
 
         self.assertEqual(grouped, {"https://example.atlassian.net": ["ABC-123", "ABC-456"]})
 
+    def test_jira_url_parser_keeps_context_path(self) -> None:
+        grouped = release_notes._parse_jira_urls(["https://jira.example.com/jira/browse/ABC-123"])
+
+        self.assertEqual(grouped, {"https://jira.example.com/jira": ["ABC-123"]})
+
+    def test_jira_url_parser_keeps_nested_context_path(self) -> None:
+        grouped = release_notes._parse_jira_urls(["https://example.com/tools/jira/browse/ABC-1"])
+
+        self.assertEqual(grouped, {"https://example.com/tools/jira": ["ABC-1"]})
+
+    def test_jira_http_errors_are_distinct_per_status(self) -> None:
+        messages = {
+            status: release_notes._JIRA_HTTP_ERRORS[status].format(key="ABC-123")
+            for status in (401, 403, 404)
+        }
+
+        self.assertEqual(len(set(messages.values())), 3)
+        self.assertIn("JIRA_API_TOKEN", messages[401])
+        self.assertNotIn("JIRA_API_TOKEN", messages[404])
+        self.assertIn("Browse Projects", messages[403])
+        self.assertIn("ABC-123", messages[404])
+
 
 class DocumentExtractionTest(unittest.TestCase):
     def test_markdown_file_is_read_as_text(self) -> None:

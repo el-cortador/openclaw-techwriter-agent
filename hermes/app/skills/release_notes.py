@@ -143,6 +143,23 @@ def _get_commits(owner: str, repo: str, since: str, until: str, branch: str = ""
     return commits
 
 
+_JIRA_HTTP_ERRORS = {
+    401: (
+        "Jira вернул 401: учётные данные не опознаны. Убедитесь, что JIRA_EMAIL — "
+        "это email аккаунта, под которым выпущен JIRA_API_TOKEN, и что аккаунт "
+        "состоит в этом Jira-сайте."
+    ),
+    403: (
+        "Jira вернул 403: аккаунт опознан, но прав на задачу {key} нет. "
+        "Нужно разрешение Browse Projects для её проекта."
+    ),
+    404: (
+        "Jira вернул 404: задача {key} не найдена или не видна этому аккаунту. "
+        "Проверьте ключ задачи и адрес Jira-сайта."
+    ),
+}
+
+
 class JiraClient:
     def __init__(self, email: str = "", api_token: str = "") -> None:
         email = email or config.JIRA_EMAIL
@@ -162,10 +179,9 @@ class JiraClient:
             response.raise_for_status()
         except requests.HTTPError as exc:
             status = exc.response.status_code if exc.response is not None else 0
-            if status in (401, 403, 404):
-                raise ReleaseNotesError(
-                    f"Jira вернул {status}. Проверьте JIRA_EMAIL, JIRA_API_TOKEN и доступ к задачам."
-                ) from exc
+            message = _JIRA_HTTP_ERRORS.get(status)
+            if message:
+                raise ReleaseNotesError(message.format(key=key)) from exc
             raise ReleaseNotesError(f"Jira API ошибка {status}") from exc
         except requests.RequestException as exc:
             raise ReleaseNotesError(f"Не удалось подключиться к Jira: {exc}") from exc
@@ -191,12 +207,27 @@ def _parse_jira_urls(urls: list[str]) -> dict[str, list[str]]:
     result: dict[str, list[str]] = {}
     for url in urls:
         parsed = urlparse(url.strip())
-        base = f"{parsed.scheme}://{parsed.netloc}"
-        parts = parsed.path.strip("/").split("/")
-        key = next((p for p in reversed(parts) if p and "-" in p), None)
+        parts = [p for p in parsed.path.strip("/").split("/") if p]
+        base, key = _split_jira_path(f"{parsed.scheme}://{parsed.netloc}", parts)
         if key:
             result.setdefault(base, []).append(key)
     return result
+
+
+def _split_jira_path(origin: str, parts: list[str]) -> tuple[str, str]:
+    """Split a Jira URL path into the REST base URL and the issue key.
+
+    Jira Server/DC may live under a context path (/jira/browse/ABC-1), so
+    everything before the /browse/ segment belongs to the base URL.
+    """
+    lowered = [p.lower() for p in parts]
+    if "browse" in lowered:
+        index = lowered.index("browse")
+        context = "/".join(parts[:index])
+        base = f"{origin}/{context}" if context else origin
+        key = parts[index + 1] if index + 1 < len(parts) else ""
+        return base, key
+    return origin, next((p for p in reversed(parts) if "-" in p), "")
 
 
 def _adf_to_text(value: object) -> str:
